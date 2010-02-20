@@ -1,8 +1,13 @@
 ﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
+using System.Reflection;
+using System.Diagnostics;
 
 namespace NReadability
 {
@@ -10,10 +15,22 @@ namespace NReadability
   {
     #region Fields
 
+    #region Resources constants
+
+    private static readonly string ReadabilityStylesheetResourceName = typeof(ReadabilityTranscoder).Namespace + ".Resources.readability.css";
+
+    #endregion
+
     #region Algorithm constants
 
-    private const string _CssClassReadabilityStyled = "readability-styled";
-    private const string _IdReadabilityContentDiv = "readability-content";
+    internal const string OverlayDivId = "readOverlay";
+    internal const string InnerDivId = "readInner";
+    internal const string ContentDivId = "readability-content";
+    internal const string ReadabilityStyledCssClass = "readability-styled";
+
+    private const ReadingStyle DefaultReadingStyle = ReadingStyle.Newspaper;
+    private const ReadingMargin DefaultReadingMargin = ReadingMargin.Wide;
+    private const ReadingSize DefaultReadingSize = ReadingSize.Medium;
 
     private const int _MinParagraphLength = 25;
     private const int _MinInnerTextLength = 25;
@@ -26,6 +43,10 @@ namespace NReadability
     private const int _MinInnerTextLengthInNodesWithEmbed = 75;
     private const int _ClassWeightTreshold = 25;
     private const int _MaxEmbedsCount = 1;
+    private const int _MaxArticleTitleLength = 150;
+    private const int _MinArticleTitleLength = 15;
+    private const int _MinArticleTitleWordsCount1 = 3;
+    private const int _MinArticleTitleWordsCount2 = 4;
 
     private const float _SiblingScoreTresholdCoefficient = 0.2f;
     private const float _MaxSiblingScoreTreshold = 10.0f;
@@ -48,6 +69,13 @@ namespace NReadability
     private static readonly Regex _NormalizeSpacesRegex = new Regex("\\s{2,}", RegexOptions.Compiled);
     private static readonly Regex _KillBreaksRegex = new Regex("(<br\\s*\\/?>(\\s|&nbsp;?)*){1,}", RegexOptions.Compiled);
     private static readonly Regex _VideoRegex = new Regex("http:\\/\\/(www\\.)?(youtube|vimeo)\\.com", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _ReplaceDoubleBrsRegex = new Regex("(<br[^>]*>[ \\n\\r\\t]*){2,}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _ReplaceFontsRegex = new Regex("<(\\/?)font[^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _ArticleTitleDashRegex1 = new Regex(" [\\|\\-] ", RegexOptions.Compiled);
+    private static readonly Regex _ArticleTitleDashRegex2 = new Regex("(.*)[\\|\\-] .*", RegexOptions.Compiled);
+    private static readonly Regex _ArticleTitleDashRegex3 = new Regex("[^\\|\\-]*[\\|\\-](.*)", RegexOptions.Compiled);
+    private static readonly Regex _ArticleTitleColonRegex1 = new Regex(".*:(.*)", RegexOptions.Compiled);
+    private static readonly Regex _ArticleTitleColonRegex2 = new Regex("[^:]*[:](.*)", RegexOptions.Compiled);
 
     #endregion
 
@@ -56,6 +84,9 @@ namespace NReadability
     private readonly bool _dontStripUnlikelys;
     private readonly bool _dontNormalizeSpacesInTextContent;
     private readonly bool _dontWeightClasses;
+    private readonly ReadingStyle _readingStyle;
+    private ReadingSize _readingSize;
+    private ReadingMargin _readingMargin;
 
     #endregion
 
@@ -71,11 +102,21 @@ namespace NReadability
 
     #region Constructor(s)
 
-    public ReadabilityTranscoder(bool dontStripUnlikelys, bool dontNormalizeSpacesInTextContent, bool dontWeightClasses)
+    // TODO: should those 3 flags be in a public constructor?
+    public ReadabilityTranscoder(
+      bool dontStripUnlikelys,
+      bool dontNormalizeSpacesInTextContent,
+      bool dontWeightClasses,
+      ReadingStyle readingStyle,
+      ReadingMargin readingMargin,
+      ReadingSize readingSize)
     {
       _dontStripUnlikelys = dontStripUnlikelys;
       _dontNormalizeSpacesInTextContent = dontNormalizeSpacesInTextContent;
       _dontWeightClasses = dontWeightClasses;
+      _readingStyle = readingStyle;
+      _readingMargin = readingMargin;
+      _readingSize = readingSize;
 
       _agilityDomBuilder = new AgilityDomBuilder();
       _agilityDomSerializer = new AgilityDomSerializer();
@@ -83,7 +124,7 @@ namespace NReadability
     }
 
     public ReadabilityTranscoder()
-      : this(false, false, false)
+      : this(false, false, false, DefaultReadingStyle, DefaultReadingMargin, DefaultReadingSize)
     {
     }
 
@@ -94,11 +135,15 @@ namespace NReadability
     public string Transcode(string htmlContent)
     {
       var document = _agilityDomBuilder.BuildDocument(htmlContent);
-      var mainContentNode = ExtractMainContent(document);
 
-      // TODO: embed main content node inside a document
-      document = new HtmlDocument();
-      document.DocumentNode.AppendChild(mainContentNode);
+      PrepareDocument(document);
+
+      var articleTitleNode = ExtractArticleTitle(document);
+      var articleContentNode = ExtractArticleContent(document);
+
+      GlueDocument(document, articleTitleNode, articleContentNode);
+
+      // TODO: check if success
 
       return _agilityDomSerializer.SerializeDocument(document);
     }
@@ -106,6 +151,229 @@ namespace NReadability
     #endregion
 
     #region Readability algorithm
+
+    internal void PrepareDocument(HtmlDocument document)
+    {
+      var rootNode = document.DocumentNode;
+
+      /* In some cases a body element can't be found (if the HTML is totally hosed for example),
+       * so we create a new body node and append it to the document. */
+      var documentBody = GetOrCreateBody(document);
+
+      #region TODO: handle frames
+
+//      var frames = document.getElementsByTagName('frame');
+//      if(frames.length > 0)
+//      {
+//          var bestFrame = null;
+//          var bestFrameSize = 0;
+//          for(var frameIndex = 0; frameIndex < frames.length; frameIndex++)
+//          {
+//              var frameSize = frames[frameIndex].offsetWidth + frames[frameIndex].offsetHeight;
+//              var canAccessFrame = false;
+//              try {
+//                  frames[frameIndex].contentWindow.document.body;
+//                  canAccessFrame = true;
+//              }
+//              catch(eFrames) {
+//                  dbg(eFrames);
+//              }
+//              
+//              if(canAccessFrame && frameSize > bestFrameSize)
+//              {
+//                  bestFrame = frames[frameIndex];
+//                  bestFrameSize = frameSize;
+//              }
+//          }
+//
+//          if(bestFrame)
+//          {
+//              var newBody = document.createElement('body');
+//              newBody.innerHTML = bestFrame.contentWindow.document.body.innerHTML;
+//              newBody.style.overflow = 'scroll';
+//              document.body = newBody;
+//              
+//              var frameset = document.getElementsByTagName('frameset')[0];
+//              if(frameset) {
+//                  frameset.parentNode.removeChild(frameset); }
+//                  
+//              readability.frameHack = true;
+//          }
+//      }
+
+      #endregion
+
+      var nodesToRemove = new List<HtmlNode>();
+
+      /* Remove all scripts that are not readability. */
+      nodesToRemove.Clear();
+
+      rootNode.GetElementsByTagName("script")
+        .ForEach(scriptNode =>
+                   {
+                     string scriptSrc = scriptNode.GetAttributeValue("src", null);
+
+                     if (string.IsNullOrEmpty(scriptSrc) || scriptSrc.LastIndexOf("readability") == -1)
+                     {
+                       nodesToRemove.Add(scriptNode);
+                     }
+                   });
+
+      RemoveNodes(nodesToRemove);
+
+      /* Remove all external stylesheets. */
+      nodesToRemove.Clear();
+      nodesToRemove.AddRange(
+        rootNode.GetElementsByTagName("link")
+          .Where(node => node.GetAttributeValue("rel", "").Trim().ToLower() == "stylesheet"
+                      && node.GetAttributeValue("href", "").LastIndexOf("readability") == -1));
+      RemoveNodes(nodesToRemove);
+
+      /* Remove all style tags. */
+      nodesToRemove.Clear();
+      nodesToRemove.AddRange(rootNode.GetElementsByTagName("style"));
+      RemoveNodes(nodesToRemove);
+
+      /* Turn all double br's into p's and all font's into span's. */
+      // TODO: optimize?
+      string bodyInnerHtml = documentBody.InnerHtml;
+
+      bodyInnerHtml = _ReplaceDoubleBrsRegex.Replace(bodyInnerHtml, "<p></p>");
+      bodyInnerHtml = _ReplaceFontsRegex.Replace(bodyInnerHtml, "<$1span>");
+
+      documentBody.InnerHtml = bodyInnerHtml;
+    }
+
+    internal HtmlNode ExtractArticleTitle(HtmlDocument document)
+    {
+      var documentBody = GetOrCreateBody(document);
+      string documentTitle = document.GetTitle() ?? "";
+      string currentTitle = documentTitle;
+
+      if (_ArticleTitleDashRegex1.IsMatch(currentTitle))
+      {
+        currentTitle = _ArticleTitleDashRegex2.Replace(documentTitle, "$1");
+
+        if (currentTitle.Split(' ').Length < _MinArticleTitleWordsCount1)
+        {
+          currentTitle = _ArticleTitleDashRegex3.Replace(documentTitle, "$1");
+        }
+      }
+      else if (currentTitle.IndexOf(": ") != -1)
+      {
+        currentTitle = _ArticleTitleColonRegex1.Replace(documentTitle, "$1");
+
+        if (currentTitle.Split(' ').Length < _MinArticleTitleWordsCount1)
+        {
+          currentTitle = _ArticleTitleColonRegex2.Replace(documentTitle, "$1");
+        }
+      }
+      else if (currentTitle.Length > _MaxArticleTitleLength || currentTitle.Length < _MinArticleTitleLength)
+      {
+        var levelOneHeaders = documentBody.GetElementsByTagName("h1");
+
+        if (levelOneHeaders.Count() == 1)
+        {
+          currentTitle = levelOneHeaders.First().InnerText;
+        }
+      }
+
+      currentTitle = (currentTitle ?? "").Trim();
+
+      if (currentTitle.Split(' ').Length <= _MinArticleTitleWordsCount2)
+      {
+        currentTitle = documentTitle;
+      }
+
+      var articleTitleNode = document.CreateElement("h1");
+
+      articleTitleNode.InnerHtml = currentTitle;
+
+      return articleTitleNode;
+    }
+
+    internal HtmlNode ExtractArticleContent(HtmlDocument document)
+    {
+      StripUnlikelyCandidates(document);
+
+      var candidatesForArticleContent = FindCandidatesForArticleContent(document);
+
+      HtmlNode topCandidateNode = DetermineTopCandidateNode(document, candidatesForArticleContent);
+      HtmlNode articleContentNode = CreateArticleContentNode(document, topCandidateNode);
+
+      PrepareArticleContentNode(articleContentNode);
+
+      return articleContentNode;
+    }
+
+    internal void GlueDocument(HtmlDocument document, HtmlNode articleTitleNode, HtmlNode articleContentNode)
+    {
+      var rootNode = document.DocumentNode;
+      var documentBody = GetOrCreateBody(document);
+
+      /* Include readability.css stylesheet. */
+      var headNode = rootNode.GetElementsByTagName("head").FirstOrDefault();
+
+      if (headNode == null)
+      {
+        headNode = document.CreateElement("head");
+
+        var parentNode = documentBody.ParentNode ?? rootNode;
+
+        parentNode.InsertBefore(headNode, documentBody);
+      }
+
+      var styleNode = document.CreateElement("style");
+
+      styleNode.SetAttributeValue("type", "text/css");
+
+      var readabilityStylesheetStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ReadabilityStylesheetResourceName);
+
+      if (readabilityStylesheetStream == null)
+      {
+        throw new InternalErrorException("Couldn't load the NReadability stylesheet embedded resource.");
+      }
+
+      using (var sr = new StreamReader(readabilityStylesheetStream))
+      {
+        styleNode.InnerHtml = sr.ReadToEnd();
+      }
+
+      headNode.AppendChild(styleNode);
+
+      /* Apply reading style to body. */
+      string readingStyleClass = GetReadingStyleClass(_readingStyle);
+
+      documentBody.SetClass(readingStyleClass);
+      documentBody.SetStyle("display: block;");
+
+      /* Create inner div. */
+      var innerDiv = document.CreateElement("div");
+
+      innerDiv.SetId(InnerDivId);
+      innerDiv.SetClass(GetReadingMarginClass(_readingMargin) + " " + GetReadingSizeClass(_readingSize));
+
+      if (articleTitleNode != null)
+      {
+        innerDiv.AppendChild(articleTitleNode);
+      }
+
+      if (articleContentNode != null)
+      {
+        innerDiv.AppendChild(articleContentNode);
+      }
+
+      /* Create overlay div. */
+      var overlayDiv = document.CreateElement("div");
+
+      overlayDiv.SetId(OverlayDivId);
+      overlayDiv.SetClass(readingStyleClass);
+      overlayDiv.AppendChild(innerDiv);
+
+      /* Clear the old HTML, insert the new content. */
+      documentBody.RemoveAllChildren();
+      documentBody.AppendChild(overlayDiv);
+    }
 
     internal void StripUnlikelyCandidates(HtmlDocument document)
     {
@@ -155,7 +423,7 @@ namespace NReadability
                 childNode =>
                   {
                     if (childNode.NodeType != HtmlNodeType.Text
-                        || GetInnerText(childNode).Length == 0)
+                     || GetInnerText(childNode).Length == 0)
                     {
                       return;
                     }
@@ -163,7 +431,7 @@ namespace NReadability
                     HtmlNode paraNode = document.CreateElement("p");
 
                     paraNode.InnerHtml = GetInnerText(childNode);
-                    paraNode.SetClass(_CssClassReadabilityStyled);
+                    paraNode.SetClass(ReadabilityStyledCssClass);
                     paraNode.SetStyle("display: inline;");
 
                     node.ReplaceChild(paraNode, childNode);
@@ -174,7 +442,7 @@ namespace NReadability
         }).Traverse(documentNode);
     }
 
-    internal IEnumerable<HtmlNode> FindCandidatesForMainContent(HtmlDocument document)
+    internal IEnumerable<HtmlNode> FindCandidatesForArticleContent(HtmlDocument document)
     {
       var paraNodes = document.DocumentNode.GetElementsByTagName("p");
       var candidateNodes = new HashSet<HtmlNode>();
@@ -218,11 +486,11 @@ namespace NReadability
       return candidateNodes;
     }
 
-    internal HtmlNode DetermineTopCandidateNode(HtmlDocument document, IEnumerable<HtmlNode> candidatesForMainContent)
+    internal HtmlNode DetermineTopCandidateNode(HtmlDocument document, IEnumerable<HtmlNode> candidatesForArticleContent)
     {
       HtmlNode topCandidateNode = null;
 
-      foreach (HtmlNode candidateNode in candidatesForMainContent)
+      foreach (HtmlNode candidateNode in candidatesForArticleContent)
       {
         float candidateScore = GetNodeScore(candidateNode);
 
@@ -244,12 +512,9 @@ namespace NReadability
       {
         topCandidateNode = document.CreateElement("div");
 
-        var documentBody = document.GetBody();
+        var documentBody = GetOrCreateBody(document);
 
-        if (documentBody != null)
-        {
-          topCandidateNode.AppendChildren(documentBody.ChildNodes);
-        }
+        topCandidateNode.AppendChildren(documentBody.ChildNodes);
       }
 
       return topCandidateNode;
@@ -262,7 +527,7 @@ namespace NReadability
 
       var articleContentNode = document.CreateElement("div");
 
-      articleContentNode.SetId(_IdReadabilityContentDiv);
+      articleContentNode.SetId(ContentDivId);
 
       HtmlNode parentNode = topCandidateNode.ParentNode;
 
@@ -473,23 +738,9 @@ namespace NReadability
       return weight;
     }
 
-    private HtmlNode ExtractMainContent(HtmlDocument document)
-    {
-      StripUnlikelyCandidates(document);
-
-      var candidatesForMainContent = FindCandidatesForMainContent(document);
-
-      HtmlNode topCandidateNode = DetermineTopCandidateNode(document, candidatesForMainContent);
-      HtmlNode articleContentNode = CreateArticleContentNode(document, topCandidateNode);
-
-      PrepareArticleContentNode(articleContentNode);
-
-      return articleContentNode;
-    }
-
     internal string GetInnerText(HtmlNode node, bool dontNormalizeSpaces)
     {
-      string result = node.InnerText ?? "";
+      string result = (node.InnerText ?? "").Trim();
 
       if (!dontNormalizeSpaces)
       {
@@ -583,7 +834,7 @@ namespace NReadability
 
           float linksDensity = GetLinksDensity(node);
           int innerTextLength = nodeInnerText.Length;
-          string nodeNameLower = nodeName.ToLower().Trim();
+          string nodeNameLower = nodeName.Trim().ToLower();
           bool remove = (imgsCount > psCount)
                      || (lisCount - _LisCountTreshold > psCount && nodeNameLower != "ul" && nodeNameLower != "ol")
                      || (inputsCount > psCount / 3)
@@ -642,16 +893,84 @@ namespace NReadability
 
             string nodeStyle = node.GetStyle();
 
-            if (!nodeStyle.Contains(_CssClassReadabilityStyled))
+            if (!nodeStyle.Contains(ReadabilityStyledCssClass))
             {
               node.SetStyle(null);
             }
           }).Traverse(rootNode);
     }
 
+    internal string GetUserStyleClass(string prefix, string enumStr)
+    {
+      var suffixSB = new StringBuilder();
+      bool wasUpperCaseCharacterSeen = false;
+
+      enumStr.Aggregate(
+        suffixSB,
+        (sb, ch) =>
+          {
+            if (Char.IsUpper(ch))
+            {
+              if (wasUpperCaseCharacterSeen)
+              {
+                sb.Append('-');
+              }
+
+              wasUpperCaseCharacterSeen = true;
+
+              sb.Append(Char.ToLower(ch));
+            }
+            else
+            {
+              sb.Append(ch);
+            }
+
+            return sb;
+          });
+
+      return string.Format("{0}-{1}", prefix, suffixSB).TrimEnd('-');
+    }
+
     #endregion
 
     #region Private helper methods
+
+    private HtmlNode GetOrCreateBody(HtmlDocument document)
+    {
+      var documentBody = document.GetBody();
+
+      if (documentBody == null)
+      {
+        var rootNode = document.DocumentNode;
+        var htmlNode = rootNode.GetElementsByTagName("html").FirstOrDefault();
+
+        if (htmlNode == null)
+        {
+          htmlNode = document.CreateElement("html");
+          rootNode.AppendChild(htmlNode);
+        }
+
+        documentBody = document.CreateElement("body");
+        htmlNode.AppendChild(documentBody);
+      }
+
+      return documentBody;
+    }
+
+    private string GetReadingStyleClass(ReadingStyle readingStyle)
+    {
+      return GetUserStyleClass("style", readingStyle.ToString());
+    }
+
+    private string GetReadingMarginClass(ReadingMargin readingMargin)
+    {
+      return GetUserStyleClass("margin", readingMargin.ToString());
+    }
+
+    private string GetReadingSizeClass(ReadingSize readingSize)
+    {
+      return GetUserStyleClass("size", readingSize.ToString());
+    }
 
     private void AddPointsToNodeScore(HtmlNode node, int pointsToAdd)
     {

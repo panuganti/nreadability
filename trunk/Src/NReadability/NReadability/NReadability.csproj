@@ -50,10 +50,15 @@
     <Compile Include="AgilityDomSerializer.cs" />
     <Compile Include="DomExtensions.cs" />
     <Compile Include="EncodedStringWriter.cs" />
+    <Compile Include="InternalErrorException.cs" />
     <Compile Include="NodesTraverser.cs" />
     <Compile Include="ReadabilityTranscoder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Enums.cs" />
     <Compile Include="UtilityExtensions.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\readability.css" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

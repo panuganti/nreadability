@@ -20,6 +20,25 @@ namespace NReadability
       return document.DocumentNode.GetElementsByTagName("body").FirstOrDefault();
     }
 
+    public static string GetTitle(this HtmlDocument document)
+    {
+      var headNode = document.DocumentNode.GetElementsByTagName("head").FirstOrDefault();
+
+      if (headNode == null)
+      {
+        return "";
+      }
+
+      var titleNode = headNode.GetChildrenByTagName("title").FirstOrDefault();
+
+      if (titleNode == null)
+      {
+        return "";
+      }
+
+      return (titleNode.InnerText ?? "").Trim();
+    }
+
     #endregion
 
     #region HtmlNode extensions
@@ -75,19 +94,36 @@ namespace NReadability
       }
     }
 
-    public static IEnumerable<HtmlNode> GetElementsByTagName(this HtmlNode node, string nodeName)
+    public static IEnumerable<HtmlNode> GetElementsByTagName(this HtmlNode node, string tagName)
     {
       if (node == null)
       {
         throw new ArgumentNullException("node");
       }
 
-      if (nodeName == null)
+      if (tagName == null)
       {
-        throw new ArgumentNullException("nodeName");
+        throw new ArgumentNullException("tagName");
       }
 
-      return node.DescendantNodes().Where(descendantNode => nodeName.Equals(descendantNode.Name, StringComparison.OrdinalIgnoreCase));
+      tagName = tagName.Trim().ToLower();
+
+      return GetNodesByNodeName(node.DescendantNodes(), tagName);
+    }
+
+    public static IEnumerable<HtmlNode> GetChildrenByTagName(this HtmlNode node, string tagName)
+    {
+      if (node == null)
+      {
+        throw new ArgumentNullException("node");
+      }
+
+      if (tagName == null)
+      {
+        throw new ArgumentNullException("tagName");
+      }
+
+      return GetNodesByNodeName(node.ChildNodes, tagName);
     }
 
     public static string GetAttributesString(this HtmlNode node, string separator)
@@ -124,6 +160,31 @@ namespace NReadability
           });
 
       return resultSB.ToString();
+    }
+
+    #endregion
+
+    #region Private helper methods
+
+    private static IEnumerable<HtmlNode> GetNodesByNodeName(IEnumerable<HtmlNode> nodes, string nodeName)
+    {
+      if (nodes == null)
+      {
+        throw new ArgumentNullException("nodes");
+      }
+
+      if (nodeName == null)
+      {
+        throw new ArgumentNullException("nodeName");
+      }
+
+      nodeName = nodeName.Trim().ToLower();
+
+      return nodes
+        .Where(descendantNode =>
+          nodeName.Equals(
+            (descendantNode.Name ?? "").Trim().ToLower(),
+            StringComparison.OrdinalIgnoreCase));
     }
 
     #endregion
