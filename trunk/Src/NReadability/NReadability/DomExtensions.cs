@@ -1,10 +1,26 @@
-﻿using HtmlAgilityPack;
+﻿using System.Collections.Generic;
+using System.Linq;
+using HtmlAgilityPack;
 
 namespace NReadability
 {
   internal static class DomExtensions
   {
-    #region Public members
+    #region HtmlDocument extensions
+
+    public static HtmlNode GetBody(this HtmlDocument document)
+    {
+      if (document.DocumentNode == null)
+      {
+        return null;
+      }
+
+      return document.DocumentNode.GetElementsByTagName("body").FirstOrDefault();
+    }
+
+    #endregion
+
+    #region HtmlNode extensions
 
     public static string GetId(this HtmlNode node)
     {
@@ -34,6 +50,11 @@ namespace NReadability
     public static void SetStyle(this HtmlNode node, string style)
     {
       node.SetAttributeValue("style", style);
+    }
+
+    public static IEnumerable<HtmlNode> GetElementsByTagName(this HtmlNode node, string nodeName)
+    {
+      return node.DescendantNodes().Where(descendantNode => descendantNode.Name == nodeName);
     }
 
     #endregion
