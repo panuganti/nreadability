@@ -23,7 +23,7 @@ namespace NReadability
 
     #region Public methods
 
-    public void Traverse(HtmlDocument document, HtmlNode node)
+    public void Traverse(HtmlNode node)
     {
       _nodeVisitor(node);
 
@@ -33,7 +33,7 @@ namespace NReadability
       {
         HtmlNode nextChildNode = childNode.NextSibling;
         
-        Traverse(document, childNode);
+        Traverse(childNode);
 
         childNode = nextChildNode;
       }

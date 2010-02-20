@@ -3,7 +3,8 @@ using System.Linq;
 using NUnit.Framework;
 using System.Globalization;
 using HtmlAgilityPack;
-using System.Text.RegularExpressions;
+using System.IO;
+
 namespace NReadability.Tests
 {
   [TestFixture]
@@ -165,7 +166,7 @@ namespace NReadability.Tests
     #region CreateArticleContent tests
 
     [Test]
-    public void Test()
+    public void CreateArticleContent_should_work_even_if_html_content_is_empty()
     {
       const string content = "";
       var document = _agilityDomBuilder.BuildDocument(content);
@@ -177,8 +178,69 @@ namespace NReadability.Tests
       var articleContentNode = _readabilityTranscoder.CreateArticleContentNode(document, topCandidateNode);
 
       Assert.IsNotNull(articleContentNode);
+      Assert.AreEqual("div", articleContentNode.Name);
+      Assert.IsNotNullOrEmpty(articleContentNode.GetId());
+      Assert.AreEqual(0, articleContentNode.ChildNodes.Count);
+    }
 
-      // TODO:
+    [Test]
+    public void CreateArticleContent_should_extract_a_paragraph()
+    {
+      const string content = "<div id=\"first-div\"><p>Praesent in arcu vitae erat sodales consequat. Nam tellus purus, volutpat ac elementum tempus, sagittis sed lacus. Sed lacus ligula, sodales id vehicula at, semper a turpis. Curabitur et augue odio, sed auctor massa. Ut odio massa, fringilla eu elementum sit amet, eleifend congue erat. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ultrices turpis dignissim metus porta id iaculis purus facilisis. Curabitur auctor purus eu nulla venenatis non ultrices nibh venenatis. Aenean dapibus pellentesque felis, ac malesuada nibh fringilla malesuada. In non mi vitae ipsum vehicula adipiscing. Sed a velit ipsum. Sed at velit magna, in euismod neque. Proin feugiat diam at lectus dapibus sed malesuada orci malesuada. Mauris sit amet orci tortor. Sed mollis, turpis in cursus elementum, sapien ante semper leo, nec venenatis velit sapien id elit. Praesent vel nulla mauris, nec tincidunt ipsum. Nulla at augue vestibulum est elementum sodales.</p></div><div id=\"\">some text</div>";
+      var document = _agilityDomBuilder.BuildDocument(content);
+      var candidatesForMainContent = _readabilityTranscoder.FindCandidatesForMainContent(document);
+      var topCandidateNode = _readabilityTranscoder.DetermineTopCandidateNode(document, candidatesForMainContent);
+
+      Assert.IsNotNull(topCandidateNode);
+
+      var articleContentNode = _readabilityTranscoder.CreateArticleContentNode(document, topCandidateNode);
+
+      Assert.IsNotNull(articleContentNode);
+      Assert.AreEqual("div", articleContentNode.Name);
+      Assert.AreEqual(1, articleContentNode.ChildNodes.Count);
+      Assert.AreEqual("first-div", articleContentNode.ChildNodes.First().GetId());
+      Assert.AreEqual(1, articleContentNode.ChildNodes.First().ChildNodes.Count);
+      Assert.AreEqual("p", articleContentNode.ChildNodes.First().ChildNodes.First().Name);
+    }
+
+    #endregion
+
+    #region Transcode tests
+
+    [Test]
+    [Sequential]
+    public void TestSampleInputs([Values(1, 2)]int sampleInputNumber)
+    {
+      string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
+      string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
+      string transcodedContent = _readabilityTranscoder.Transcode(content);
+
+      switch (sampleInputNumber)
+      {
+        case 1: // washingtonpost.com - "Court Puts Off Decision On Indefinite Detention"
+          Assert.IsTrue(transcodedContent.Contains("The Supreme Court yesterday vacated a lower"));
+          Assert.IsTrue(transcodedContent.Contains("The justices did not rule on the merits"));
+          Assert.IsTrue(transcodedContent.Contains("But the government said the issues were now"));
+          break;
+
+        case 2: // devBlogi.pl - "Po co nam testerzy?"
+          Assert.IsTrue(transcodedContent.Contains("Moja siostra sprawiła swoim dzieciom szczeniaczka"));
+          Assert.IsTrue(transcodedContent.Contains("Z tresowaniem psów jest tak, że reakcja musi być"));
+          Assert.IsTrue(transcodedContent.Contains("Korzystając z okazji, chcielibyśmy dowiedzieć się"));
+          break;
+
+        default:
+          throw new NotSupportedException("Unknown sample input number (" + sampleInputNumber + "). Have you added another sample input? If so, then add appropriate asserts here as well.");
+      }
+
+      const string outputDir = "SampleOutput";
+
+      if (!Directory.Exists(Path.GetDirectoryName(outputDir)))
+      {
+        Directory.CreateDirectory(outputDir);
+      }
+
+      File.WriteAllText(Path.Combine(outputDir, string.Format("SampleOutput_{0}.html", sampleInputNumberStr)), transcodedContent);
     }
 
     #endregion

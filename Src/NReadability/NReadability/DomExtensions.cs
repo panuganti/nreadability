@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using HtmlAgilityPack;
+using System.Text;
 
 namespace NReadability
 {
@@ -29,7 +31,14 @@ namespace NReadability
 
     public static void SetId(this HtmlNode node, string id)
     {
-      node.SetAttributeValue("id", id);
+      if (id == null)
+      {
+        node.Attributes.Remove("id");
+      }
+      else
+      {
+        node.SetAttributeValue("id", id);
+      }
     }
 
     public static string GetClass(this HtmlNode node)
@@ -39,7 +48,14 @@ namespace NReadability
 
     public static void SetClass(this HtmlNode node, string @class)
     {
-      node.SetAttributeValue("class", @class);
+      if (@class == null)
+      {
+        node.Attributes.Remove("class");
+      }
+      else
+      {
+        node.SetAttributeValue("class", @class);
+      }
     }
 
     public static string GetStyle(this HtmlNode node)
@@ -49,12 +65,65 @@ namespace NReadability
 
     public static void SetStyle(this HtmlNode node, string style)
     {
-      node.SetAttributeValue("style", style);
+      if (style == null)
+      {
+        node.Attributes.Remove("style");
+      }
+      else
+      {
+        node.SetAttributeValue("style", style);
+      }
     }
 
     public static IEnumerable<HtmlNode> GetElementsByTagName(this HtmlNode node, string nodeName)
     {
-      return node.DescendantNodes().Where(descendantNode => descendantNode.Name == nodeName);
+      if (node == null)
+      {
+        throw new ArgumentNullException("node");
+      }
+
+      if (nodeName == null)
+      {
+        throw new ArgumentNullException("nodeName");
+      }
+
+      return node.DescendantNodes().Where(descendantNode => nodeName.Equals(descendantNode.Name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public static string GetAttributesString(this HtmlNode node, string separator)
+    {
+      if (separator == null)
+      {
+        throw new ArgumentNullException("separator");
+      }
+
+      var resultSB = new StringBuilder();
+      bool isFirst = true;
+
+      node.Attributes.Aggregate(
+        resultSB,
+        (sb, attribute) =>
+          {
+            string attributeValue = attribute.Value;
+
+            if (string.IsNullOrEmpty(attributeValue))
+            {
+              return sb;
+            }
+
+            if (!isFirst)
+            {
+              resultSB.Append(separator);
+            }
+
+            isFirst = false;
+
+            sb.Append(attribute.Value);
+
+            return sb;
+          });
+
+      return resultSB.ToString();
     }
 
     #endregion
