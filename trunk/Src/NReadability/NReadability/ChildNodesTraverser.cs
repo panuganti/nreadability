@@ -23,7 +23,7 @@ namespace NReadability
 
     #region Public methods
 
-    public void Traverse(HtmlDocument document, HtmlNode node)
+    public void Traverse(HtmlNode node)
     {
       HtmlNode childNode = node.FirstChild;
 
