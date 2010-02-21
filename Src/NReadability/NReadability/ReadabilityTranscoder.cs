@@ -1,4 +1,23 @@
-﻿using System;
+﻿/*
+ * NReadability
+ * http://code.google.com/p/nreadability/
+ * 
+ * Copyright 2010 Marek Stój
+ * http://immortal.pl/
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,10 +26,12 @@ using System.Text;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using System.Reflection;
-using System.Diagnostics;
 
 namespace NReadability
 {
+  /// <summary>
+  /// TODO:
+  /// </summary>
   public class ReadabilityTranscoder
   {
     #region Fields
@@ -23,14 +44,25 @@ namespace NReadability
 
     #region Algorithm constants
 
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public const ReadingStyle DefaultReadingStyle = ReadingStyle.Newspaper;
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public const ReadingMargin DefaultReadingMargin = ReadingMargin.Wide;
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public const ReadingSize DefaultReadingSize = ReadingSize.Medium;
+
     internal const string OverlayDivId = "readOverlay";
     internal const string InnerDivId = "readInner";
     internal const string ContentDivId = "readability-content";
     internal const string ReadabilityStyledCssClass = "readability-styled";
-
-    private const ReadingStyle DefaultReadingStyle = ReadingStyle.Newspaper;
-    private const ReadingMargin DefaultReadingMargin = ReadingMargin.Wide;
-    private const ReadingSize DefaultReadingSize = ReadingSize.Medium;
 
     private const int _MinParagraphLength = 25;
     private const int _MinInnerTextLength = 25;
@@ -102,7 +134,10 @@ namespace NReadability
 
     #region Constructor(s)
 
-    // TODO: should those 3 flags be in a public constructor?
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    // TODO: should those first 3 flags be in a public constructor?
     public ReadabilityTranscoder(
       bool dontStripUnlikelys,
       bool dontNormalizeSpacesInTextContent,
@@ -123,8 +158,19 @@ namespace NReadability
       _nodesScores = new Dictionary<HtmlNode, float>();
     }
 
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public ReadabilityTranscoder(ReadingStyle readingStyle, ReadingMargin readingMargin, ReadingSize readingSize)
+      : this(false, false, false, readingStyle, readingMargin, readingSize)
+    {
+    }
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
     public ReadabilityTranscoder()
-      : this(false, false, false, DefaultReadingStyle, DefaultReadingMargin, DefaultReadingSize)
+      : this(DefaultReadingStyle, DefaultReadingMargin, DefaultReadingSize)
     {
     }
 
@@ -132,6 +178,9 @@ namespace NReadability
 
     #region Public methods
 
+    /// <summary>
+    /// TODO:
+    /// </summary>
     public string Transcode(string htmlContent)
     {
       var document = _agilityDomBuilder.BuildDocument(htmlContent);
@@ -143,7 +192,7 @@ namespace NReadability
 
       GlueDocument(document, articleTitleNode, articleContentNode);
 
-      // TODO: check if success
+      // TODO: implement a fallback behaviour - rerun one more time with _dontStripUnlikelys and then with _dontWeightClasses
 
       return _agilityDomSerializer.SerializeDocument(document);
     }
@@ -160,48 +209,7 @@ namespace NReadability
        * so we create a new body node and append it to the document. */
       var documentBody = GetOrCreateBody(document);
 
-      #region TODO: handle frames
-
-//      var frames = document.getElementsByTagName('frame');
-//      if(frames.length > 0)
-//      {
-//          var bestFrame = null;
-//          var bestFrameSize = 0;
-//          for(var frameIndex = 0; frameIndex < frames.length; frameIndex++)
-//          {
-//              var frameSize = frames[frameIndex].offsetWidth + frames[frameIndex].offsetHeight;
-//              var canAccessFrame = false;
-//              try {
-//                  frames[frameIndex].contentWindow.document.body;
-//                  canAccessFrame = true;
-//              }
-//              catch(eFrames) {
-//                  dbg(eFrames);
-//              }
-//              
-//              if(canAccessFrame && frameSize > bestFrameSize)
-//              {
-//                  bestFrame = frames[frameIndex];
-//                  bestFrameSize = frameSize;
-//              }
-//          }
-//
-//          if(bestFrame)
-//          {
-//              var newBody = document.createElement('body');
-//              newBody.innerHTML = bestFrame.contentWindow.document.body.innerHTML;
-//              newBody.style.overflow = 'scroll';
-//              document.body = newBody;
-//              
-//              var frameset = document.getElementsByTagName('frameset')[0];
-//              if(frameset) {
-//                  frameset.parentNode.removeChild(frameset); }
-//                  
-//              readability.frameHack = true;
-//          }
-//      }
-
-      #endregion
+      // TODO: handle HTML frames
 
       var nodesToRemove = new List<HtmlNode>();
 
@@ -792,7 +800,7 @@ namespace NReadability
 
     /// <summary>
     /// Cleans a <param name="rootNode" /> of all nodes with name <param name="nodeName" /> if they look fishy.
-    /// "Fishy" is an algorithm based on content length, classnames, link density, number of images & embeds, etc.
+    /// "Fishy" is an algorithm based on content length, classnames, link density, number of images and embeds, etc.
     /// </summary>
     internal void CleanConditionally(HtmlNode rootNode, string nodeName)
     {
