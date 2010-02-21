@@ -8,3 +8,5 @@ First release of NReadability. It implements almost the whole set of features fr
   * the fallback behaviour when article content can't be extracted is not implemented.
 
 Note also that this release should be considered a BETA release. Particualarly, performance testing and optimizations have not been performed yet.
+
+This release is based on version 1.5.0.0 of Readability bookmarklet.
