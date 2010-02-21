@@ -1,3 +1,3 @@
 @echo off
-nant -buildfile:NReadability.build
+cls & nant -buildfile:NReadability.build
 pause

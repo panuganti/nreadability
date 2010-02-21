@@ -1,18 +1,18 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("NReadability.Tests")]
+[assembly: AssemblyTitle("NReadability.Console")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("immortal.pl")]
-[assembly: AssemblyProduct("NReadability.Tests")]
+[assembly: AssemblyProduct("NReadability.Console")]
 [assembly: AssemblyCopyright("Copyright ©  2010")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
 [assembly: ComVisible(false)]
 
-[assembly: Guid("57668136-834a-42ab-989d-de2ff7db3d8f")]
+[assembly: Guid("7583466f-c5dd-4a7a-ad53-706b45d0b32d")]
 
 [assembly: AssemblyVersion("0.9.0.0")]
 [assembly: AssemblyFileVersion("0.9.0.0")]

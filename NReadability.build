@@ -1,9 +1,33 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <project name="NReadability" default="all">
 
+  <property name="nreadability.version" value="0.9.0.0" />
   <property name="msbuild.path" value="C:\Windows\Microsoft.NET\Framework\v3.5\MSBuild.exe" />
 
-  <target name="build">
+  <echo message="Current NReadability version is ${nreadability.version}." />
+
+  <target name="expand-templates">
+    <echo message="Expanding AssemblyInfo.cs templates." />
+    <foreach item="File" property="filePath">
+      <in>
+        <items>
+          <include name="Src\**\AssemblyInfo.cs.template" />
+        </items>
+      </in>
+      <do>
+        <echo message="Expanding template ${filePath}" />
+        <copy file="${filePath}" tofile="${path::combine(path::get-directory-name(filePath), 'AssemblyInfo.cs')}" overwrite="true">
+          <filterchain>
+            <replacetokens>
+              <token key="NReadabilityVersion" value="${nreadability.version}" />
+            </replacetokens>
+          </filterchain>
+        </copy>
+      </do>
+    </foreach>
+  </target>
+  
+  <target name="build" depends="expand-templates">
     <exec program="${msbuild.path}">
       <arg value="Src\NReadability\NReadability.sln" />
       <arg value="/t:Build" />
@@ -39,25 +63,26 @@
       </fileset>
     </copy>
     <echo message="Merging assemblies." />
+    <move file="Dist\NReadability.dll" tofile="Dist\NReadability.tmp.dll" />
     <exec program="Tools\ILMerge\ILMerge.exe">
-      <arg value="/out:Dist\NReadability.merged.dll" />
-      <arg value="Dist\NReadability.dll" />
+      <arg value="/out:Dist\NReadability.dll" />
+      <arg value="Dist\NReadability.tmp.dll" />
       <arg value="Dist\HtmlAgilityPack.dll" />
     </exec>
     <delete>
       <fileset basedir="Dist">
         <include name="*.*" />
-        <exclude name="NReadability.merged.dll" />
+        <exclude name="NReadability.dll" />
         <exclude name="NReadability.xml" />
       </fileset>
     </delete>
-    <move file="Dist\NReadability.merged.dll" tofile="Dist\NReadability.dll" />
+    <copy file="Bin\NReadability.Console.exe" todir="Dist" />
+    <copy file="LICENSE.txt" todir="Dist" />
     <copy todir="Dist">
       <fileset basedir="ImmDOc">
         <include name="*.chm" />
       </fileset>
     </copy>
-    <copy todir="Dist" file="LICENSE.txt" />
   </target>
   
   <target name="clean">

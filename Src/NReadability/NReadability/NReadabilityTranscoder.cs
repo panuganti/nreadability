@@ -32,13 +32,13 @@ namespace NReadability
   /// <summary>
   /// TODO:
   /// </summary>
-  public class ReadabilityTranscoder
+  public class NReadabilityTranscoder
   {
     #region Fields
 
     #region Resources constants
 
-    private static readonly string ReadabilityStylesheetResourceName = typeof(ReadabilityTranscoder).Namespace + ".Resources.readability.css";
+    private static readonly string ReadabilityStylesheetResourceName = typeof(NReadabilityTranscoder).Namespace + ".Resources.readability.css";
 
     #endregion
 
@@ -138,7 +138,7 @@ namespace NReadability
     /// TODO:
     /// </summary>
     // TODO: should those first 3 flags be in a public constructor?
-    public ReadabilityTranscoder(
+    public NReadabilityTranscoder(
       bool dontStripUnlikelys,
       bool dontNormalizeSpacesInTextContent,
       bool dontWeightClasses,
@@ -161,7 +161,7 @@ namespace NReadability
     /// <summary>
     /// TODO:
     /// </summary>
-    public ReadabilityTranscoder(ReadingStyle readingStyle, ReadingMargin readingMargin, ReadingSize readingSize)
+    public NReadabilityTranscoder(ReadingStyle readingStyle, ReadingMargin readingMargin, ReadingSize readingSize)
       : this(false, false, false, readingStyle, readingMargin, readingSize)
     {
     }
@@ -169,7 +169,7 @@ namespace NReadability
     /// <summary>
     /// TODO:
     /// </summary>
-    public ReadabilityTranscoder()
+    public NReadabilityTranscoder()
       : this(DefaultReadingStyle, DefaultReadingMargin, DefaultReadingSize)
     {
     }
