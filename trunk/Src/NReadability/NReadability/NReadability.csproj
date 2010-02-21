@@ -41,7 +41,6 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="System.Data" />
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
@@ -52,9 +51,10 @@
     <Compile Include="EncodedStringWriter.cs" />
     <Compile Include="InternalErrorException.cs" />
     <Compile Include="NodesTraverser.cs" />
-    <Compile Include="ReadabilityTranscoder.cs" />
+    <Compile Include="NReadabilityTranscoder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Enums.cs" />
+    <None Include="Properties\AssemblyInfo.cs.template" />
     <Compile Include="UtilityExtensions.cs" />
   </ItemGroup>
   <ItemGroup>

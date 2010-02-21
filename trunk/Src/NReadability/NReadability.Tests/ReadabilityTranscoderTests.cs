@@ -30,7 +30,7 @@ namespace NReadability.Tests
   [TestFixture]
   public class ReadabilityTranscoderTests
   {
-    private ReadabilityTranscoder _readabilityTranscoder;
+    private NReadabilityTranscoder _nReadabilityTranscoder;
 
     private static readonly AgilityDomBuilder _agilityDomBuilder;
     private static readonly AgilityDomSerializer _agilityDomSerializer;
@@ -50,7 +50,7 @@ namespace NReadability.Tests
     [SetUp]
     public void SetUp()
     {
-      _readabilityTranscoder = new ReadabilityTranscoder();
+      _nReadabilityTranscoder = new NReadabilityTranscoder();
     }
 
     #endregion
@@ -63,7 +63,7 @@ namespace NReadability.Tests
       const string content = "<div class=\"sidebar\">Some content.</div>";
       var document = _agilityDomBuilder.BuildDocument(content);
       
-      _readabilityTranscoder.StripUnlikelyCandidates(document);
+      _nReadabilityTranscoder.StripUnlikelyCandidates(document);
 
       string newContent = _agilityDomSerializer.SerializeDocument(document);
 
@@ -76,7 +76,7 @@ namespace NReadability.Tests
       const string content = "<div id=\"article\" class=\"sidebar\"><a href=\"#\">Some widget</a></div>";
       var document = _agilityDomBuilder.BuildDocument(content);
 
-      _readabilityTranscoder.StripUnlikelyCandidates(document);
+      _nReadabilityTranscoder.StripUnlikelyCandidates(document);
 
       string newContent = _agilityDomSerializer.SerializeDocument(document);
 
@@ -89,7 +89,7 @@ namespace NReadability.Tests
       const string content = "<div>text node1<a href=\"#\">Link</a>text node2</div>";
       var document = _agilityDomBuilder.BuildDocument(content);
 
-      _readabilityTranscoder.StripUnlikelyCandidates(document);
+      _nReadabilityTranscoder.StripUnlikelyCandidates(document);
 
       Assert.AreEqual(2, document.DocumentNode.DescendantNodes().Count(node => node.Name == "p"));
     }
@@ -103,7 +103,7 @@ namespace NReadability.Tests
     {
       const string content = "<div id=\"container\"></div>";
       var document = _agilityDomBuilder.BuildDocument(content);
-      float linksDensity = _readabilityTranscoder.GetLinksDensity(document.GetElementbyId("container"));
+      float linksDensity = _nReadabilityTranscoder.GetLinksDensity(document.GetElementbyId("container"));
 
       AssertFloatsAreEqual(0.0f, linksDensity);
     }
@@ -113,7 +113,7 @@ namespace NReadability.Tests
     {
       const string content = "<div id=\"container\"><a href=\"#\">some link</a></div>";
       var document = _agilityDomBuilder.BuildDocument(content);
-      float linksDensity = _readabilityTranscoder.GetLinksDensity(document.GetElementbyId("container"));
+      float linksDensity = _nReadabilityTranscoder.GetLinksDensity(document.GetElementbyId("container"));
 
       AssertFloatsAreEqual(1.0f, linksDensity);
     }
@@ -123,7 +123,7 @@ namespace NReadability.Tests
     {
       const string content = "<div id=\"container\"><a href=\"#\">some link</a>some link</div>";
       var document = _agilityDomBuilder.BuildDocument(content);
-      float linksDensity = _readabilityTranscoder.GetLinksDensity(document.GetElementbyId("container"));
+      float linksDensity = _nReadabilityTranscoder.GetLinksDensity(document.GetElementbyId("container"));
 
       AssertFloatsAreEqual(0.5f, linksDensity);
     }
@@ -138,11 +138,11 @@ namespace NReadability.Tests
       const string content = "";
       var document = _agilityDomBuilder.BuildDocument(content);
 
-      var candidatesForArticleContent = _readabilityTranscoder.FindCandidatesForArticleContent(document);
+      var candidatesForArticleContent = _nReadabilityTranscoder.FindCandidatesForArticleContent(document);
 
       Assert.AreEqual(0, candidatesForArticleContent.Count());
 
-      var topCandidateNode = _readabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
+      var topCandidateNode = _nReadabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
 
       Assert.IsNotNull(topCandidateNode);
     }
@@ -153,11 +153,11 @@ namespace NReadability.Tests
       const string content = "<body><p>Some paragraph.</p><p>Some paragraph.</p>some text</body>";
       var document = _agilityDomBuilder.BuildDocument(content);
 
-      var candidatesForArticleContent = _readabilityTranscoder.FindCandidatesForArticleContent(document);
+      var candidatesForArticleContent = _nReadabilityTranscoder.FindCandidatesForArticleContent(document);
       
       Assert.AreEqual(0, candidatesForArticleContent.Count());
 
-      var topCandidateNode = _readabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
+      var topCandidateNode = _nReadabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
 
       Assert.IsNotNull(topCandidateNode);
       Assert.AreEqual(3, topCandidateNode.ChildNodes.Count);
@@ -171,11 +171,11 @@ namespace NReadability.Tests
     {
       const string content = "<body><div id=\"first-div\"><p>Praesent in arcu vitae erat sodales consequat. Nam tellus purus, volutpat ac elementum tempus, sagittis sed lacus. Sed lacus ligula, sodales id vehicula at, semper a turpis. Curabitur et augue odio, sed auctor massa. Ut odio massa, fringilla eu elementum sit amet, eleifend congue erat. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ultrices turpis dignissim metus porta id iaculis purus facilisis. Curabitur auctor purus eu nulla venenatis non ultrices nibh venenatis. Aenean dapibus pellentesque felis, ac malesuada nibh fringilla malesuada. In non mi vitae ipsum vehicula adipiscing. Sed a velit ipsum. Sed at velit magna, in euismod neque. Proin feugiat diam at lectus dapibus sed malesuada orci malesuada. Mauris sit amet orci tortor. Sed mollis, turpis in cursus elementum, sapien ante semper leo, nec venenatis velit sapien id elit. Praesent vel nulla mauris, nec tincidunt ipsum. Nulla at augue vestibulum est elementum sodales.</p></div><div id=\"second-div\"><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin lacus ipsum, blandit sit amet cursus ut, posuere quis velit. Vivamus ut lectus quam, venenatis posuere erat. Sed pellentesque suscipit rhoncus. Vestibulum dictum est ut elit molestie vel facilisis dui tincidunt. Nulla adipiscing metus in nulla condimentum non mattis lacus tempus. Phasellus sed ipsum in felis molestie molestie. Sed sagittis massa orci, ut sagittis sem. Cras eget feugiat nulla. Nunc lacus turpis, porttitor eget congue quis, accumsan sed nunc. Vivamus imperdiet luctus molestie. Suspendisse eu est sed ligula pretium blandit. Proin eget metus nisl, at convallis metus. In commodo nibh a arcu pellentesque iaculis. Cras tincidunt vehicula malesuada. Duis tellus mi, ultrices sit amet dapibus sit amet, semper ac elit. Cras lobortis, urna eget consectetur consectetur, enim velit tempus neque, et tincidunt risus quam id mi. Morbi sit amet odio magna, vitae tempus sem. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur at lectus sit amet augue tincidunt ornare sed vitae lorem. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p></div></body>";
       var document = _agilityDomBuilder.BuildDocument(content);
-      var candidatesForArticleContent = _readabilityTranscoder.FindCandidatesForArticleContent(document);
+      var candidatesForArticleContent = _nReadabilityTranscoder.FindCandidatesForArticleContent(document);
 
       Assert.AreEqual(3, candidatesForArticleContent.Count());
 
-      var topCandidateNode = _readabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
+      var topCandidateNode = _nReadabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
 
       Assert.IsNotNull(topCandidateNode);
       Assert.AreEqual("second-div", topCandidateNode.GetId());
@@ -190,12 +190,12 @@ namespace NReadability.Tests
     {
       const string content = "";
       var document = _agilityDomBuilder.BuildDocument(content);
-      var candidatesForArticleContent = _readabilityTranscoder.FindCandidatesForArticleContent(document);
-      var topCandidateNode = _readabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
+      var candidatesForArticleContent = _nReadabilityTranscoder.FindCandidatesForArticleContent(document);
+      var topCandidateNode = _nReadabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
 
       Assert.IsNotNull(topCandidateNode);
 
-      var articleContentNode = _readabilityTranscoder.CreateArticleContentNode(document, topCandidateNode);
+      var articleContentNode = _nReadabilityTranscoder.CreateArticleContentNode(document, topCandidateNode);
 
       Assert.IsNotNull(articleContentNode);
       Assert.AreEqual("div", articleContentNode.Name);
@@ -208,12 +208,12 @@ namespace NReadability.Tests
     {
       const string content = "<div id=\"first-div\"><p>Praesent in arcu vitae erat sodales consequat. Nam tellus purus, volutpat ac elementum tempus, sagittis sed lacus. Sed lacus ligula, sodales id vehicula at, semper a turpis. Curabitur et augue odio, sed auctor massa. Ut odio massa, fringilla eu elementum sit amet, eleifend congue erat. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ultrices turpis dignissim metus porta id iaculis purus facilisis. Curabitur auctor purus eu nulla venenatis non ultrices nibh venenatis. Aenean dapibus pellentesque felis, ac malesuada nibh fringilla malesuada. In non mi vitae ipsum vehicula adipiscing. Sed a velit ipsum. Sed at velit magna, in euismod neque. Proin feugiat diam at lectus dapibus sed malesuada orci malesuada. Mauris sit amet orci tortor. Sed mollis, turpis in cursus elementum, sapien ante semper leo, nec venenatis velit sapien id elit. Praesent vel nulla mauris, nec tincidunt ipsum. Nulla at augue vestibulum est elementum sodales.</p></div><div id=\"\">some text</div>";
       var document = _agilityDomBuilder.BuildDocument(content);
-      var candidatesForArticleContent = _readabilityTranscoder.FindCandidatesForArticleContent(document);
-      var topCandidateNode = _readabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
+      var candidatesForArticleContent = _nReadabilityTranscoder.FindCandidatesForArticleContent(document);
+      var topCandidateNode = _nReadabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
 
       Assert.IsNotNull(topCandidateNode);
 
-      var articleContentNode = _readabilityTranscoder.CreateArticleContentNode(document, topCandidateNode);
+      var articleContentNode = _nReadabilityTranscoder.CreateArticleContentNode(document, topCandidateNode);
 
       Assert.IsNotNull(articleContentNode);
       Assert.AreEqual("div", articleContentNode.Name);
@@ -235,7 +235,7 @@ namespace NReadability.Tests
 
       Assert.IsNull(document.GetBody());
 
-      _readabilityTranscoder.PrepareDocument(document);
+      _nReadabilityTranscoder.PrepareDocument(document);
 
       Assert.IsNotNull(document.GetBody());
     }
@@ -248,7 +248,7 @@ namespace NReadability.Tests
 
       Assert.Greater(CountTags(document, "script", "style", "link"), 0);
 
-      _readabilityTranscoder.PrepareDocument(document);
+      _nReadabilityTranscoder.PrepareDocument(document);
 
       Assert.AreEqual(0, CountTags(document, "script", "style", "link"));
     }
@@ -261,7 +261,7 @@ namespace NReadability.Tests
 
       int countBefore = CountTags(document, "script", "link");
 
-      _readabilityTranscoder.PrepareDocument(document);
+      _nReadabilityTranscoder.PrepareDocument(document);
 
       int countAfter = CountTags(document, "script", "link");
 
@@ -277,7 +277,7 @@ namespace NReadability.Tests
       Assert.AreEqual(0, CountTags(document, "p"));
       Assert.Greater(CountTags(document, "br"), 0);
 
-      _readabilityTranscoder.PrepareDocument(document);
+      _nReadabilityTranscoder.PrepareDocument(document);
 
       Assert.AreEqual(0, CountTags(document, "br"));
       Assert.AreEqual(1, CountTags(document, "p"));
@@ -292,7 +292,7 @@ namespace NReadability.Tests
       Assert.AreEqual(0, CountTags(document, "span"));
       Assert.Greater(CountTags(document, "font"), 0);
 
-      _readabilityTranscoder.PrepareDocument(document);
+      _nReadabilityTranscoder.PrepareDocument(document);
 
       Assert.AreEqual(0, CountTags(document, "font"));
       Assert.AreEqual(1, CountTags(document, "span"));
@@ -310,7 +310,7 @@ namespace NReadability.Tests
 
       Assert.AreEqual(0, CountTags(document, "head"));
 
-      _readabilityTranscoder.GlueDocument(document, null, document.GetBody());
+      _nReadabilityTranscoder.GlueDocument(document, null, document.GetBody());
 
       Assert.AreEqual(1, CountTags(document, "head"));
     }
@@ -323,7 +323,7 @@ namespace NReadability.Tests
 
       Assert.AreEqual(0, CountTags(document, "style"));
 
-      _readabilityTranscoder.GlueDocument(document, null, document.GetBody());
+      _nReadabilityTranscoder.GlueDocument(document, null, document.GetBody());
 
       Assert.AreEqual(1, CountTags(document, "style"));
     }
@@ -334,10 +334,10 @@ namespace NReadability.Tests
       const string content = "";
       var document = _agilityDomBuilder.BuildDocument(content);
 
-      _readabilityTranscoder.GlueDocument(document, null, document.GetBody());
+      _nReadabilityTranscoder.GlueDocument(document, null, document.GetBody());
 
-      Assert.IsNotNull(document.GetElementbyId(ReadabilityTranscoder.OverlayDivId));
-      Assert.IsNotNull(document.GetElementbyId(ReadabilityTranscoder.InnerDivId));
+      Assert.IsNotNull(document.GetElementbyId(NReadabilityTranscoder.OverlayDivId));
+      Assert.IsNotNull(document.GetElementbyId(NReadabilityTranscoder.InnerDivId));
     }
 
     #endregion
@@ -347,11 +347,11 @@ namespace NReadability.Tests
     [Test]
     public void TestGetUserStyleClass()
     {
-      Assert.AreEqual("prefix", _readabilityTranscoder.GetUserStyleClass("prefix", ""));
-      Assert.AreEqual("prefix-abc", _readabilityTranscoder.GetUserStyleClass("prefix", "abc"));
-      Assert.AreEqual("prefix-abc", _readabilityTranscoder.GetUserStyleClass("prefix", "Abc"));
-      Assert.AreEqual("prefix-a-bc", _readabilityTranscoder.GetUserStyleClass("prefix", "ABc"));
-      Assert.AreEqual("prefix-a-bc-d", _readabilityTranscoder.GetUserStyleClass("prefix", "ABcD"));
+      Assert.AreEqual("prefix", _nReadabilityTranscoder.GetUserStyleClass("prefix", ""));
+      Assert.AreEqual("prefix-abc", _nReadabilityTranscoder.GetUserStyleClass("prefix", "abc"));
+      Assert.AreEqual("prefix-abc", _nReadabilityTranscoder.GetUserStyleClass("prefix", "Abc"));
+      Assert.AreEqual("prefix-a-bc", _nReadabilityTranscoder.GetUserStyleClass("prefix", "ABc"));
+      Assert.AreEqual("prefix-a-bc-d", _nReadabilityTranscoder.GetUserStyleClass("prefix", "ABcD"));
     }
 
     #endregion
@@ -364,7 +364,7 @@ namespace NReadability.Tests
     {
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
-      string transcodedContent = _readabilityTranscoder.Transcode(content);
+      string transcodedContent = _nReadabilityTranscoder.Transcode(content);
 
       switch (sampleInputNumber)
       {
