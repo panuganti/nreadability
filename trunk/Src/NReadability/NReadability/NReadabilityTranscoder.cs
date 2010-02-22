@@ -438,7 +438,9 @@ namespace NReadability
 
                     HtmlNode paraNode = document.CreateElement("p");
 
-                    paraNode.InnerHtml = GetInnerText(childNode);
+                    // NOTE: we're not using GetInnerText() here; instead we're getting raw InnerText to preserver whitespaces
+                    paraNode.InnerHtml = childNode.InnerText;
+
                     paraNode.SetClass(ReadabilityStyledCssClass);
                     paraNode.SetStyle("display: inline;");
 
@@ -899,12 +901,15 @@ namespace NReadability
               return;
             }
 
-            string nodeStyle = node.GetStyle();
+            string nodeClass = node.GetClass();
 
-            if (!nodeStyle.Contains(ReadabilityStyledCssClass))
+            if (nodeClass.Contains(ReadabilityStyledCssClass))
             {
-              node.SetStyle(null);
+              // don't remove the style if that's we who have styled this node
+              return;
             }
+
+            node.SetStyle(null);
           }).Traverse(rootNode);
     }
 
