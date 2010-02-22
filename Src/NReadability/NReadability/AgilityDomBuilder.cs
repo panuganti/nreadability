@@ -36,6 +36,9 @@ namespace NReadability
     {
       var document = new HtmlDocument();
 
+      document.OptionFixNestedTags = true;
+      document.OptionWriteEmptyNodes = true;
+
       document.LoadHtml(htmlContent);
 
       return document;

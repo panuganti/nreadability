@@ -360,7 +360,7 @@ namespace NReadability.Tests
 
     [Test]
     [Sequential]
-    public void TestSampleInputs([Values(1, 2)]int sampleInputNumber)
+    public void TestSampleInputs([Values(1, 2, 3)]int sampleInputNumber)
     {
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
@@ -378,6 +378,12 @@ namespace NReadability.Tests
           Assert.IsTrue(transcodedContent.Contains("Moja siostra sprawiła swoim dzieciom szczeniaczka"));
           Assert.IsTrue(transcodedContent.Contains("Z tresowaniem psów jest tak, że reakcja musi być"));
           Assert.IsTrue(transcodedContent.Contains("Korzystając z okazji, chcielibyśmy dowiedzieć się"));
+          break;
+
+        case 3: // codinghorror.com - "Welcome Back Comments"
+          Assert.IsTrue(transcodedContent.Contains("I apologize for the scarcity of updates lately."));
+          Assert.IsTrue(transcodedContent.Contains("Most of all, I blame myself."));
+          Assert.IsTrue(transcodedContent.Contains("And, most of all, thanks to"));
           break;
 
         default:
