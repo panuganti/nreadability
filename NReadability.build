@@ -67,7 +67,7 @@
     <exec program="Tools\ILMerge\ILMerge.exe">
       <arg value="/out:Dist\NReadability.dll" />
       <arg value="Dist\NReadability.tmp.dll" />
-      <arg value="Dist\HtmlAgilityPack.dll" />
+      <arg value="Dist\SgmlReaderDll.dll" />
     </exec>
     <delete>
       <fileset basedir="Dist">
