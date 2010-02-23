@@ -24,24 +24,22 @@ using System.Xml.Linq;
 namespace NReadability
 {
   /// <summary>
-  /// TODO:
+  /// TODO: comment
   /// </summary>
   public class SgmlDomSerializer
   {
     #region Public methods
 
     /// <summary>
-    /// TODO:
+    /// TODO: comment
     /// </summary>
-    /// <param name="document"></param>
-    /// <param name="prettyPrint"></param>
     public string SerializeDocument(XDocument document, bool prettyPrint)
     {
       return document.ToString(prettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
     }
 
     /// <summary>
-    /// TODO:
+    /// TODO: comment
     /// </summary>
     public string SerializeDocument(XDocument document)
     {

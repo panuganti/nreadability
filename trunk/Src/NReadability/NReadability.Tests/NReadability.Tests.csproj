@@ -53,7 +53,7 @@
   <ItemGroup>
     <Compile Include="DomExtensionsTests.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
-    <Compile Include="ReadabilityTranscoderTests.cs" />
+    <Compile Include="NReadabilityTranscoderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

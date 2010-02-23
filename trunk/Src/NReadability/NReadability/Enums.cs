@@ -21,89 +21,89 @@
 namespace NReadability
 {
   /// <summary>
-  /// TODO:
+  /// Determines how the extracted article will be styled.
   /// </summary>
   public enum ReadingStyle
   {
     /// <summary>
-    /// TODO:
+    /// Newspaper style.
     /// </summary>
     Newspaper,
 
     /// <summary>
-    /// TODO:
+    /// Novel style.
     /// </summary>
     Novel,
 
     /// <summary>
-    /// TODO:
+    /// Ebook style.
     /// </summary>
     Ebook,
 
     /// <summary>
-    /// TODO:
+    /// Terminal style.
     /// </summary>
     Terminal,
   }
 
   /// <summary>
-  /// TODO:
+  /// Determines how wide the margin of the extracted article will be.
   /// </summary>
   public enum ReadingMargin
   {
     /// <summary>
-    /// TODO:
+    /// Extra-narrow margin.
     /// </summary>
     XNarrow,
 
     /// <summary>
-    /// TODO:
+    /// Narrow margin.
     /// </summary>
     Narrow,
 
     /// <summary>
-    /// TODO:
+    /// Medium margin.
     /// </summary>
     Medium,
 
     /// <summary>
-    /// TODO:
+    /// Wide margin.
     /// </summary>
     Wide,
 
     /// <summary>
-    /// TODO:
+    /// Extra-wide margin.
     /// </summary>
     XWide,
   }
 
   /// <summary>
-  /// TODO:
+  /// Determines how large the font of the extracted article will be.
   /// </summary>
   public enum ReadingSize
   {
     /// <summary>
-    /// TODO:
+    /// Extra-small font.
     /// </summary>
     XSmall,
 
     /// <summary>
-    /// TODO:
+    /// Small font.
     /// </summary>
     Small,
 
     /// <summary>
-    /// TODO:
+    /// Medium font.
     /// </summary>
     Medium,
 
     /// <summary>
-    /// TODO:
+    /// Large font.
     /// </summary>
     Large,
 
     /// <summary>
-    /// TODO:
+    /// Extra-large font.
     /// </summary>
     XLarge,
   }
