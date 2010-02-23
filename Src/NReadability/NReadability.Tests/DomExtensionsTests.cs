@@ -38,7 +38,7 @@ namespace NReadability.Tests
     }
 
     [Test]
-    public void GetAttributesString_should_return_empty_string_if_node_has_no_attributes()
+    public void GetAttributesString_should_return_empty_string_if_element_has_no_attributes()
     {
       var element = new XElement("div");
 
@@ -46,7 +46,7 @@ namespace NReadability.Tests
     }
 
     [Test]
-    public void GetAttributesString_should_return_a_string_with_a_single_attribute_if_node_has_only_one_attribute()
+    public void GetAttributesString_should_return_a_string_with_a_single_attribute_if_element_has_only_one_attribute()
     {
       const string attributeValue = "container";
       var element = new XElement("div");
@@ -57,7 +57,7 @@ namespace NReadability.Tests
     }
 
     [Test]
-    public void GetAttributesString_should_return_a_string_with_separated_attributes_if_node_has_more_than_one_attribute()
+    public void GetAttributesString_should_return_a_string_with_separated_attributes_if_element_has_more_than_one_attribute()
     {
       const string attributeValue1 = "container";
       const string attributeValue2 = "widget";
@@ -75,9 +75,83 @@ namespace NReadability.Tests
     #region GetInnerHtml and SetInnerHtml tests
 
     [Test]
-    public void Test()
+    public void Test_GetInnerHtml_text()
     {
-      Assert.Fail("IMPLEMENT ME!!!!!!!!");
+      const string innerHtml = "text1\r\ntext2";
+      var element = XElement.Parse("<div>" + innerHtml + "</div>");
+
+      Assert.AreEqual(innerHtml, element.GetInnerHtml());
+    }
+
+    [Test]
+    public void Test_GetInnerHtml_text_multiline()
+    {
+      const string innerHtml = "text1\r\ntext2";
+      var element = XElement.Parse("<div>" + innerHtml + "</div>");
+
+      Assert.AreEqual(innerHtml, element.GetInnerHtml());
+    }
+
+    [Test]
+    public void Test_GetInnerHtml_html()
+    {
+      const string innerHtml = "text1<p>text2</p>text3";
+      var element = XElement.Parse("<div>" + innerHtml + "</div>");
+
+      Assert.AreEqual(innerHtml, element.GetInnerHtml());
+    }
+
+    [Test]
+    public void Test_GetInnerHtml_html_multiline()
+    {
+      const string innerHtml = "text1\r\n<p>\r\ntext2\r\n</p>\r\ntext3\r\n";
+      var element = XElement.Parse("<div>" + innerHtml + "</div>");
+
+      Assert.AreEqual(innerHtml, element.GetInnerHtml());
+    }
+
+    [Test]
+    public void Test_SetInnerHtml_text()
+    {
+      const string innerHtml = "text";
+      var element = new XElement("div");
+
+      element.SetInnerHtml(innerHtml);
+
+      Assert.AreEqual(innerHtml, element.GetInnerHtml());
+    }
+
+    [Test]
+    public void Test_SetInnerHtml_text_multiline()
+    {
+      const string innerHtml = "\r\ntext1\r\ntext\r\n";
+      var element = new XElement("div");
+
+      element.SetInnerHtml(innerHtml);
+
+      Assert.AreEqual(innerHtml, element.GetInnerHtml());
+    }
+
+    [Test]
+    public void Test_SetInnerHtml_html()
+    {
+      const string innerHtml = "text1<p>text2</p>text3";
+      var element = new XElement("div");
+
+      element.SetInnerHtml(innerHtml);
+
+      Assert.AreEqual(innerHtml, element.GetInnerHtml());
+    }
+
+    [Test]
+    public void Test_SetInnerHtml_html_multiline()
+    {
+      const string innerHtml = "\r\ntext1\r\n<p>\r\ntext2\r\n</p>\r\ntext3\r\n";
+      var element = new XElement("div");
+
+      element.SetInnerHtml(innerHtml);
+
+      Assert.AreEqual(innerHtml, element.GetInnerHtml());
     }
 
     #endregion

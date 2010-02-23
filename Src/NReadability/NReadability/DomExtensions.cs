@@ -61,24 +61,24 @@ namespace NReadability
         return null;
       }
 
-      var headNode = documentRoot.GetElementsByTagName("head").FirstOrDefault();
+      var headElement = documentRoot.GetElementsByTagName("head").FirstOrDefault();
 
-      if (headNode == null)
+      if (headElement == null)
       {
         return "";
       }
 
-      var titleNode = headNode.GetChildrenByTagName("title").FirstOrDefault();
+      var titleElement = headElement.GetChildrenByTagName("title").FirstOrDefault();
 
-      if (titleNode == null)
+      if (titleElement == null)
       {
         return "";
       }
 
-      return (titleNode.Value ?? "").Trim();
+      return (titleElement.Value ?? "").Trim();
     }
 
-    public static XElement GetElementbyId(this XDocument document, string id)
+    public static XElement GetElementById(this XDocument document, string id)
     {
       if (document == null)
       {
@@ -218,14 +218,21 @@ namespace NReadability
       return resultSb.ToString();
     }
 
-    public static string GetInnerHtml(this XElement element)
+    public static string GetInnerHtml(this XContainer container)
     {
-      if (element == null)
+      if (container == null)
       {
-        throw new ArgumentNullException("element");
+        throw new ArgumentNullException("container");
       }
 
-      return element.ToString(SaveOptions.DisableFormatting);
+      var resultSb = new StringBuilder();
+
+      foreach (var childNode in container.Nodes())
+      {
+        resultSb.Append(childNode.ToString(SaveOptions.DisableFormatting));
+      }
+
+      return resultSb.ToString();
     }
 
     public static void SetInnerHtml(this XElement element, string html)

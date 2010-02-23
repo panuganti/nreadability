@@ -28,14 +28,14 @@ using System.IO;
 namespace NReadability
 {
   /// <summary>
-  /// TODO:
+  /// TODO: comment
   /// </summary>
   public class SgmlDomBuilder
   {
     #region Public methods
 
     /// <summary>
-    /// TODO:
+    /// TODO: comment
     /// </summary>
     public XDocument BuildDocument(string htmlContent)
     {

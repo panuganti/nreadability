@@ -23,42 +23,40 @@ using System.Xml.Linq;
 
 namespace NReadability
 {
-  internal class NodesTraverser
+  internal class ElementsTraverser
   {
-    private readonly Action<XNode> _nodeVisitor;
+    private readonly Action<XElement> _elementVisitor;
 
     #region Constructor(s)
 
-    public NodesTraverser(Action<XNode> nodeVisitor)
+    public ElementsTraverser(Action<XElement> elementVisitor)
     {
-      if (nodeVisitor == null)
+      if (elementVisitor == null)
       {
-        throw new ArgumentNullException("nodeVisitor");
+        throw new ArgumentNullException("elementVisitor");
       }
 
-      _nodeVisitor = nodeVisitor;
+      _elementVisitor = elementVisitor;
     }
 
     #endregion
 
     #region Public methods
 
-    public void Traverse(XNode node)
+    public void Traverse(XElement element)
     {
-      _nodeVisitor(node);
+      _elementVisitor(element);
 
-      if (!(node is XContainer))
-      {
-        return;
-      }
-
-      var childNode = ((XContainer)node).FirstNode;
+      var childNode = element.FirstNode;
 
       while (childNode != null)
       {
         var nextChildNode = childNode.NextNode;
         
-        Traverse(childNode);
+        if (childNode is XElement)
+        {
+          Traverse((XElement)childNode);
+        }
 
         childNode = nextChildNode;
       }
