@@ -20,10 +20,11 @@
 
 using System;
 using System.Linq;
+using System.Xml.Linq;
 using NUnit.Framework;
 using System.Globalization;
-using HtmlAgilityPack;
 using System.IO;
+using System.Xml;
 
 namespace NReadability.Tests
 {
@@ -32,15 +33,15 @@ namespace NReadability.Tests
   {
     private NReadabilityTranscoder _nReadabilityTranscoder;
 
-    private static readonly AgilityDomBuilder _agilityDomBuilder;
-    private static readonly AgilityDomSerializer _agilityDomSerializer;
+    private static readonly SgmlDomBuilder _agilityDomBuilder;
+    private static readonly SgmlDomSerializer _agilityDomSerializer;
 
     #region Constructor(s)
 
     static ReadabilityTranscoderTests()
     {
-      _agilityDomBuilder = new AgilityDomBuilder();
-      _agilityDomSerializer = new AgilityDomSerializer();
+      _agilityDomBuilder = new SgmlDomBuilder();
+      _agilityDomSerializer = new SgmlDomSerializer();
     }
 
     #endregion
@@ -91,7 +92,7 @@ namespace NReadability.Tests
 
       _nReadabilityTranscoder.StripUnlikelyCandidates(document);
 
-      Assert.AreEqual(2, document.DocumentNode.DescendantNodes().Count(node => node.Name == "p"));
+      Assert.AreEqual(2, CountTags(document, "p"));
     }
 
     #endregion
@@ -160,10 +161,10 @@ namespace NReadability.Tests
       var topCandidateNode = _nReadabilityTranscoder.DetermineTopCandidateNode(document, candidatesForArticleContent);
 
       Assert.IsNotNull(topCandidateNode);
-      Assert.AreEqual(3, topCandidateNode.ChildNodes.Count);
-      Assert.AreEqual("p", topCandidateNode.ChildNodes.First().Name);
-      Assert.AreEqual("p", topCandidateNode.ChildNodes.Skip(1).First().Name);
-      Assert.AreEqual(HtmlNodeType.Text, topCandidateNode.ChildNodes.Skip(2).First().NodeType);
+      Assert.AreEqual(3, topCandidateNode.Nodes().Count());
+      Assert.AreEqual("p", ((XElement)topCandidateNode.Nodes().First()).Name.LocalName);
+      Assert.AreEqual("p", ((XElement)topCandidateNode.Nodes().Skip(1).First()).Name.LocalName);
+      Assert.AreEqual(XmlNodeType.Text, topCandidateNode.Nodes().Skip(2).First().NodeType);
     }
 
     [Test]
@@ -198,9 +199,9 @@ namespace NReadability.Tests
       var articleContentNode = _nReadabilityTranscoder.CreateArticleContentNode(document, topCandidateNode);
 
       Assert.IsNotNull(articleContentNode);
-      Assert.AreEqual("div", articleContentNode.Name);
+      Assert.AreEqual("div", articleContentNode.Name.LocalName);
       Assert.IsNotNullOrEmpty(articleContentNode.GetId());
-      Assert.AreEqual(0, articleContentNode.ChildNodes.Count);
+      Assert.AreEqual(0, articleContentNode.Nodes().Count());
     }
 
     [Test]
@@ -216,11 +217,11 @@ namespace NReadability.Tests
       var articleContentNode = _nReadabilityTranscoder.CreateArticleContentNode(document, topCandidateNode);
 
       Assert.IsNotNull(articleContentNode);
-      Assert.AreEqual("div", articleContentNode.Name);
-      Assert.AreEqual(1, articleContentNode.ChildNodes.Count);
-      Assert.AreEqual("first-div", articleContentNode.ChildNodes.First().GetId());
-      Assert.AreEqual(1, articleContentNode.ChildNodes.First().ChildNodes.Count);
-      Assert.AreEqual("p", articleContentNode.ChildNodes.First().ChildNodes.First().Name);
+      Assert.AreEqual("div", articleContentNode.Name.LocalName);
+      Assert.AreEqual(1, articleContentNode.Nodes().Count());
+      Assert.AreEqual("first-div", ((XElement)articleContentNode.Nodes().First()).GetId());
+      Assert.AreEqual(1, ((XElement)articleContentNode.Nodes().First()).Nodes().Count());
+      Assert.AreEqual("p", ((XElement)((XElement)articleContentNode.Nodes().First()).Nodes().First()).Name.LocalName);
     }
 
     #endregion
@@ -392,7 +393,7 @@ namespace NReadability.Tests
 
       const string outputDir = "SampleOutput";
 
-      if (!Directory.Exists(Path.GetDirectoryName(outputDir)))
+      if (!Directory.Exists(outputDir))
       {
         Directory.CreateDirectory(outputDir);
       }
@@ -411,7 +412,7 @@ namespace NReadability.Tests
         content = content.Trim();
       }
 
-      Assert.IsNullOrEmpty(content);
+      Assert.AreEqual("<html />", content);
     }
 
     private static void AssertHtmlContentsAreEqual(string expectedContent, string actualContent)
@@ -438,22 +439,19 @@ namespace NReadability.Tests
           actual));
     }
 
-    private static int CountTags(HtmlDocument document, params string[] args)
+    private static int CountTags(XContainer container, params string[] args)
     {
-      int count = 0;
-
-      new NodesTraverser(
-        node =>
-          {
-            string nodeName = (node.Name ?? "").Trim().ToLower();
-
-            if (args.Any(nodeToSearch => nodeToSearch.Trim().ToLower() == nodeName))
-            {
-              count++;
-            }
-          }).Traverse(document.DocumentNode);
-
-      return count;
+      return container.Descendants()
+        .Count(
+          element =>
+            args.Any(
+              elementToSearch =>
+                elementToSearch.Trim().ToLower()
+                  .Equals(
+                    element.Name != null
+                      ? element.Name.LocalName
+                      : null,
+                    StringComparison.OrdinalIgnoreCase)));
     }
 
     #endregion

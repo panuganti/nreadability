@@ -19,17 +19,17 @@
  */
 
 using System;
-using HtmlAgilityPack;
+using System.Xml.Linq;
 
 namespace NReadability
 {
   internal class NodesTraverser
   {
-    private readonly Action<HtmlNode> _nodeVisitor;
+    private readonly Action<XNode> _nodeVisitor;
 
     #region Constructor(s)
 
-    public NodesTraverser(Action<HtmlNode> nodeVisitor)
+    public NodesTraverser(Action<XNode> nodeVisitor)
     {
       if (nodeVisitor == null)
       {
@@ -43,15 +43,20 @@ namespace NReadability
 
     #region Public methods
 
-    public void Traverse(HtmlNode node)
+    public void Traverse(XNode node)
     {
       _nodeVisitor(node);
 
-      HtmlNode childNode = node.FirstChild;
+      if (!(node is XContainer))
+      {
+        return;
+      }
+
+      var childNode = ((XContainer)node).FirstNode;
 
       while (childNode != null)
       {
-        HtmlNode nextChildNode = childNode.NextSibling;
+        var nextChildNode = childNode.NextNode;
         
         Traverse(childNode);
 

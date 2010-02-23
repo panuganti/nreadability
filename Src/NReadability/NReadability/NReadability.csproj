@@ -33,20 +33,23 @@
     <DocumentationFile>..\..\..\Bin\NReadability.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="HtmlAgilityPack, Version=1.3.9.1, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
+    <Reference Include="SgmlReaderDll, Version=1.8.6.28404, Culture=neutral, PublicKeyToken=46b2db9ca481831b, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Lib\HtmlAgilityPack\HtmlAgilityPack.dll</HintPath>
+      <HintPath>..\..\..\Lib\SgmlReader\SgmlReaderDll.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.XML" />
+    <Reference Include="System.Xml.Linq">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AgilityDomBuilder.cs" />
+    <Compile Include="SgmlDomBuilder.cs" />
     <Compile Include="ChildNodesTraverser.cs" />
-    <Compile Include="AgilityDomSerializer.cs" />
+    <Compile Include="SgmlDomSerializer.cs" />
     <Compile Include="DomExtensions.cs" />
     <Compile Include="EncodedStringWriter.cs" />
     <Compile Include="InternalErrorException.cs" />

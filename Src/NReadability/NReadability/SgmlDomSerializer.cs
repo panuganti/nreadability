@@ -19,30 +19,33 @@
  */
 
 using System.Text;
-using HtmlAgilityPack;
+using System.Xml.Linq;
 
 namespace NReadability
 {
   /// <summary>
   /// TODO:
   /// </summary>
-  public class AgilityDomSerializer
+  public class SgmlDomSerializer
   {
     #region Public methods
 
     /// <summary>
     /// TODO:
     /// </summary>
-    public string SerializeDocument(HtmlDocument document)
+    /// <param name="document"></param>
+    /// <param name="prettyPrint"></param>
+    public string SerializeDocument(XDocument document, bool prettyPrint)
     {
-      var resultSB = new StringBuilder();
+      return document.ToString(prettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
+    }
 
-      using (var stringWriter = new EncodedStringWriter(resultSB))
-      {
-        document.Save(stringWriter);
-      }
-
-      return resultSB.ToString();
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public string SerializeDocument(XDocument document)
+    {
+      return SerializeDocument(document, false);
     }
 
     #endregion
