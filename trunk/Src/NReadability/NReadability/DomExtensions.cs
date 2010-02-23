@@ -21,28 +21,47 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using HtmlAgilityPack;
 using System.Text;
+using System.Xml.Linq;
 
 namespace NReadability
 {
   internal static class DomExtensions
   {
-    #region HtmlDocument extensions
+    #region XDocument extensions
 
-    public static HtmlNode GetBody(this HtmlDocument document)
+    public static XElement GetBody(this XDocument document)
     {
-      if (document.DocumentNode == null)
+      if (document == null)
+      {
+        throw new ArgumentNullException("document");
+      }
+
+      var documentRoot = document.Root;
+
+      if (documentRoot == null)
       {
         return null;
       }
 
-      return document.DocumentNode.GetElementsByTagName("body").FirstOrDefault();
+      return documentRoot.GetElementsByTagName("body").FirstOrDefault();
     }
 
-    public static string GetTitle(this HtmlDocument document)
+    public static string GetTitle(this XDocument document)
     {
-      var headNode = document.DocumentNode.GetElementsByTagName("head").FirstOrDefault();
+      if (document == null)
+      {
+        throw new ArgumentNullException("document");
+      }
+
+      var documentRoot = document.Root;
+
+      if (documentRoot == null)
+      {
+        return null;
+      }
+
+      var headNode = documentRoot.GetElementsByTagName("head").FirstOrDefault();
 
       if (headNode == null)
       {
@@ -56,155 +75,215 @@ namespace NReadability
         return "";
       }
 
-      return (titleNode.InnerText ?? "").Trim();
+      return (titleNode.Value ?? "").Trim();
+    }
+
+    public static XElement GetElementbyId(this XDocument document, string id)
+    {
+      if (document == null)
+      {
+        throw new ArgumentNullException("document");
+      }
+
+      if (string.IsNullOrEmpty(id))
+      {
+        throw new ArgumentNullException("id");
+      }
+
+      return
+        (from element in document.Descendants()
+         let idAttribute = element.Attribute("id")
+         where idAttribute != null && idAttribute.Value == id
+         select element).SingleOrDefault();
     }
 
     #endregion
 
-    #region HtmlNode extensions
+    #region XElement extensions
 
-    public static string GetId(this HtmlNode node)
+    public static string GetId(this XElement element)
     {
-      return node.GetAttributeValue("id", "");
+      return element.GetAttributeValue("id", "");
     }
 
-    public static void SetId(this HtmlNode node, string id)
+    public static void SetId(this XElement element, string id)
     {
-      if (id == null)
+      element.SetAttributeValue("id", id);
+    }
+
+    public static string GetClass(this XElement element)
+    {
+      return element.GetAttributeValue("class", "");
+    }
+
+    public static void SetClass(this XElement element, string @class)
+    {
+      element.SetAttributeValue("class", @class);
+    }
+
+    public static string GetStyle(this XElement element)
+    {
+      return element.GetAttributeValue("style", "");
+    }
+
+    public static void SetStyle(this XElement element, string style)
+    {
+      element.SetAttributeValue("style", style);
+    }
+
+    public static string GetAttributeValue(this XElement element, string attributeName, string defaultValue)
+    {
+      if (element == null)
       {
-        node.Attributes.Remove("id");
+        throw new ArgumentNullException("element");
+      }
+
+      if (string.IsNullOrEmpty(attributeName))
+      {
+        throw new ArgumentNullException("attributeName");
+      }
+
+      var attribute = element.Attribute(attributeName);
+
+      return attribute != null
+               ? (attribute.Value ?? defaultValue)
+               : defaultValue;
+    }
+
+    public static void SetAttributeValue(this XElement element, string attributeName, string value)
+    {
+      if (element == null)
+      {
+        throw new ArgumentNullException("element");
+      }
+
+      if (string.IsNullOrEmpty(attributeName))
+      {
+        throw new ArgumentNullException("attributeName");
+      }
+
+      if (value == null)
+      {
+        var attribute = element.Attribute(attributeName);
+
+        if (attribute != null)
+        {
+          attribute.Remove();
+        }
       }
       else
       {
-        node.SetAttributeValue("id", id);
+        element.SetAttributeValue(attributeName, value);
       }
     }
 
-    public static string GetClass(this HtmlNode node)
+    public static string GetAttributesString(this XElement element, string separator)
     {
-      return node.GetAttributeValue("class", "");
-    }
-
-    public static void SetClass(this HtmlNode node, string @class)
-    {
-      if (@class == null)
+      if (element == null)
       {
-        node.Attributes.Remove("class");
-      }
-      else
-      {
-        node.SetAttributeValue("class", @class);
-      }
-    }
-
-    public static string GetStyle(this HtmlNode node)
-    {
-      return node.GetAttributeValue("style", "");
-    }
-
-    public static void SetStyle(this HtmlNode node, string style)
-    {
-      if (style == null)
-      {
-        node.Attributes.Remove("style");
-      }
-      else
-      {
-        node.SetAttributeValue("style", style);
-      }
-    }
-
-    public static IEnumerable<HtmlNode> GetElementsByTagName(this HtmlNode node, string tagName)
-    {
-      if (node == null)
-      {
-        throw new ArgumentNullException("node");
+        throw new ArgumentNullException("element");
       }
 
-      if (tagName == null)
-      {
-        throw new ArgumentNullException("tagName");
-      }
-
-      tagName = tagName.Trim().ToLower();
-
-      return GetNodesByNodeName(node.DescendantNodes(), tagName);
-    }
-
-    public static IEnumerable<HtmlNode> GetChildrenByTagName(this HtmlNode node, string tagName)
-    {
-      if (node == null)
-      {
-        throw new ArgumentNullException("node");
-      }
-
-      if (tagName == null)
-      {
-        throw new ArgumentNullException("tagName");
-      }
-
-      return GetNodesByNodeName(node.ChildNodes, tagName);
-    }
-
-    public static string GetAttributesString(this HtmlNode node, string separator)
-    {
       if (separator == null)
       {
         throw new ArgumentNullException("separator");
       }
 
-      var resultSB = new StringBuilder();
+      var resultSb = new StringBuilder();
       bool isFirst = true;
 
-      node.Attributes.Aggregate(
-        resultSB,
+      element.Attributes().Aggregate(
+        resultSb,
         (sb, attribute) =>
+        {
+          string attributeValue = attribute.Value;
+
+          if (string.IsNullOrEmpty(attributeValue))
           {
-            string attributeValue = attribute.Value;
-
-            if (string.IsNullOrEmpty(attributeValue))
-            {
-              return sb;
-            }
-
-            if (!isFirst)
-            {
-              resultSB.Append(separator);
-            }
-
-            isFirst = false;
-
-            sb.Append(attribute.Value);
-
             return sb;
-          });
+          }
 
-      return resultSB.ToString();
+          if (!isFirst)
+          {
+            resultSb.Append(separator);
+          }
+
+          isFirst = false;
+
+          sb.Append(attribute.Value);
+
+          return sb;
+        });
+
+      return resultSb.ToString();
+    }
+
+    public static string GetInnerHtml(this XElement element)
+    {
+      if (element == null)
+      {
+        throw new ArgumentNullException("element");
+      }
+
+      return element.ToString(SaveOptions.DisableFormatting);
+    }
+
+    public static void SetInnerHtml(this XElement element, string html)
+    {
+      if (element == null)
+      {
+        throw new ArgumentNullException("element");
+      }
+
+      if (html == null)
+      {
+        throw new ArgumentNullException("html");
+      }
+
+      element.RemoveAll();
+
+      var tmpElement = XElement.Parse(string.Format("<div>{0}</div>", html), LoadOptions.PreserveWhitespace);
+
+      foreach (var node in tmpElement.Nodes())
+      {
+        element.Add(node);
+      }
     }
 
     #endregion
 
-    #region Private helper methods
+    #region XContainer extensions
 
-    private static IEnumerable<HtmlNode> GetNodesByNodeName(IEnumerable<HtmlNode> nodes, string nodeName)
+    public static IEnumerable<XElement> GetElementsByTagName(this XContainer container, string tagName)
     {
-      if (nodes == null)
+      if (container == null)
       {
-        throw new ArgumentNullException("nodes");
+        throw new ArgumentNullException("container");
       }
 
-      if (nodeName == null)
+      if (string.IsNullOrEmpty(tagName))
       {
-        throw new ArgumentNullException("nodeName");
+        throw new ArgumentNullException("tagName");
       }
 
-      nodeName = nodeName.Trim().ToLower();
+      return container.Descendants()
+        .Where(e => e.Name != null && tagName.Equals(e.Name.LocalName, StringComparison.OrdinalIgnoreCase));
+    }
 
-      return nodes
-        .Where(descendantNode =>
-          nodeName.Equals(
-            (descendantNode.Name ?? "").Trim().ToLower(),
-            StringComparison.OrdinalIgnoreCase));
+    public static IEnumerable<XElement> GetChildrenByTagName(this XContainer container, string tagName)
+    {
+      if (container == null)
+      {
+        throw new ArgumentNullException("container");
+      }
+
+      if (string.IsNullOrEmpty(tagName))
+      {
+        throw new ArgumentNullException("tagName");
+      }
+
+      return container.Elements()
+        .Where(e => e.Name != null && tagName.Equals(e.Name.LocalName, StringComparison.OrdinalIgnoreCase));
     }
 
     #endregion

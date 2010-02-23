@@ -26,7 +26,7 @@ namespace NReadability
 {
   internal class EncodedStringWriter : StringWriter
   {
-    private static readonly Encoding DefaultEncoding = Encoding.UTF8;
+    private static readonly Encoding _DefaultEncoding = Encoding.UTF8;
 
     private readonly Encoding _encoding;
 
@@ -44,7 +44,7 @@ namespace NReadability
     }
 
     public EncodedStringWriter(StringBuilder sb)
-      : this(sb, DefaultEncoding)
+      : this(sb, _DefaultEncoding)
     {
     }
 

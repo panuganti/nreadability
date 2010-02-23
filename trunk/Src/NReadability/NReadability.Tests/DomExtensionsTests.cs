@@ -19,8 +19,8 @@
  */
 
 using System;
+using System.Xml.Linq;
 using NUnit.Framework;
-using HtmlAgilityPack;
 
 namespace NReadability.Tests
 {
@@ -32,46 +32,52 @@ namespace NReadability.Tests
     [Test]
     public void GetAttributesString_should_throw_exception_if_separator_is_null()
     {
-      var document = new HtmlDocument();
-      var node = document.CreateElement("div");
+      var element = new XElement("div");
 
-      Assert.Throws(typeof(ArgumentNullException), () => node.GetAttributesString(null));
+      Assert.Throws(typeof(ArgumentNullException), () => element.GetAttributesString(null));
     }
 
     [Test]
     public void GetAttributesString_should_return_empty_string_if_node_has_no_attributes()
     {
-      var document = new HtmlDocument();
-      var node = document.CreateElement("div");
+      var element = new XElement("div");
 
-      Assert.AreEqual("", node.GetAttributesString("|"));
+      Assert.AreEqual("", element.GetAttributesString("|"));
     }
 
     [Test]
     public void GetAttributesString_should_return_a_string_with_a_single_attribute_if_node_has_only_one_attribute()
     {
-      var document = new HtmlDocument();
-      var node = document.CreateElement("div");
       const string attributeValue = "container";
+      var element = new XElement("div");
 
-      node.Attributes.Add("id", attributeValue);
+      element.SetAttributeValue("id", attributeValue);
 
-      Assert.AreEqual(attributeValue, node.GetAttributesString("|"));
+      Assert.AreEqual(attributeValue, element.GetAttributesString("|"));
     }
 
     [Test]
     public void GetAttributesString_should_return_a_string_with_separated_attributes_if_node_has_more_than_one_attribute()
     {
-      var document = new HtmlDocument();
-      var node = document.CreateElement("div");
       const string attributeValue1 = "container";
       const string attributeValue2 = "widget";
       const string separator = "|";
+      var element = new XElement("div");
 
-      node.Attributes.Add("id", attributeValue1);
-      node.Attributes.Add("class", attributeValue2);
+      element.SetAttributeValue("id", attributeValue1);
+      element.SetAttributeValue("class", attributeValue2);
 
-      Assert.AreEqual(attributeValue1 + separator + attributeValue2, node.GetAttributesString(separator));
+      Assert.AreEqual(attributeValue1 + separator + attributeValue2, element.GetAttributesString(separator));
+    }
+
+    #endregion
+
+    #region GetInnerHtml and SetInnerHtml tests
+
+    [Test]
+    public void Test()
+    {
+      Assert.Fail("IMPLEMENT ME!!!!!!!!");
     }
 
     #endregion

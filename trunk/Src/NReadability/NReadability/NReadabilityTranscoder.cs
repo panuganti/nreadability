@@ -24,8 +24,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using HtmlAgilityPack;
 using System.Reflection;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace NReadability
 {
@@ -38,7 +39,7 @@ namespace NReadability
 
     #region Resources constants
 
-    private static readonly string ReadabilityStylesheetResourceName = typeof(NReadabilityTranscoder).Namespace + ".Resources.readability.css";
+    private static readonly string _ReadabilityStylesheetResourceName = typeof(NReadabilityTranscoder).Namespace + ".Resources.readability.css";
 
     #endregion
 
@@ -112,21 +113,21 @@ namespace NReadability
     #endregion
 
     #region Algorithm parameters
-    
+
     private readonly bool _dontStripUnlikelys;
     private readonly bool _dontNormalizeSpacesInTextContent;
     private readonly bool _dontWeightClasses;
     private readonly ReadingStyle _readingStyle;
-    private ReadingSize _readingSize;
-    private ReadingMargin _readingMargin;
+    private readonly ReadingSize _readingSize;
+    private readonly ReadingMargin _readingMargin;
 
     #endregion
 
     #region Helper instance fields
 
-    private readonly AgilityDomBuilder _agilityDomBuilder;
-    private readonly AgilityDomSerializer _agilityDomSerializer;
-    private readonly Dictionary<HtmlNode, float> _nodesScores;
+    private readonly SgmlDomBuilder _agilityDomBuilder;
+    private readonly SgmlDomSerializer _agilityDomSerializer;
+    private readonly Dictionary<XNode, float> _nodesScores;
 
     #endregion
 
@@ -153,9 +154,9 @@ namespace NReadability
       _readingMargin = readingMargin;
       _readingSize = readingSize;
 
-      _agilityDomBuilder = new AgilityDomBuilder();
-      _agilityDomSerializer = new AgilityDomSerializer();
-      _nodesScores = new Dictionary<HtmlNode, float>();
+      _agilityDomBuilder = new SgmlDomBuilder();
+      _agilityDomSerializer = new SgmlDomSerializer();
+      _nodesScores = new Dictionary<XNode, float>();
     }
 
     /// <summary>
@@ -201,20 +202,19 @@ namespace NReadability
 
     #region Readability algorithm
 
-    internal void PrepareDocument(HtmlDocument document)
+    internal void PrepareDocument(XDocument document)
     {
-      var rootNode = document.DocumentNode;
-
       /* In some cases a body element can't be found (if the HTML is totally hosed for example),
        * so we create a new body node and append it to the document. */
       var documentBody = GetOrCreateBody(document);
+      var rootNode = document.Root;
 
       // TODO: handle HTML frames
 
-      var nodesToRemove = new List<HtmlNode>();
+      var elementsToRemove = new List<XElement>();
 
       /* Remove all scripts that are not readability. */
-      nodesToRemove.Clear();
+      elementsToRemove.Clear();
 
       rootNode.GetElementsByTagName("script")
         .ForEach(scriptNode =>
@@ -223,36 +223,36 @@ namespace NReadability
 
                      if (string.IsNullOrEmpty(scriptSrc) || scriptSrc.LastIndexOf("readability") == -1)
                      {
-                       nodesToRemove.Add(scriptNode);
+                       elementsToRemove.Add(scriptNode);
                      }
                    });
 
-      RemoveNodes(nodesToRemove);
+      RemoveElements(elementsToRemove);
 
       /* Remove all external stylesheets. */
-      nodesToRemove.Clear();
-      nodesToRemove.AddRange(
+      elementsToRemove.Clear();
+      elementsToRemove.AddRange(
         rootNode.GetElementsByTagName("link")
           .Where(node => node.GetAttributeValue("rel", "").Trim().ToLower() == "stylesheet"
                       && node.GetAttributeValue("href", "").LastIndexOf("readability") == -1));
-      RemoveNodes(nodesToRemove);
+      RemoveElements(elementsToRemove);
 
       /* Remove all style tags. */
-      nodesToRemove.Clear();
-      nodesToRemove.AddRange(rootNode.GetElementsByTagName("style"));
-      RemoveNodes(nodesToRemove);
+      elementsToRemove.Clear();
+      elementsToRemove.AddRange(rootNode.GetElementsByTagName("style"));
+      RemoveElements(elementsToRemove);
 
       /* Turn all double br's into p's and all font's into span's. */
       // TODO: optimize?
-      string bodyInnerHtml = documentBody.InnerHtml;
+      string bodyInnerHtml = documentBody.GetInnerHtml();
 
       bodyInnerHtml = _ReplaceDoubleBrsRegex.Replace(bodyInnerHtml, "<p></p>");
       bodyInnerHtml = _ReplaceFontsRegex.Replace(bodyInnerHtml, "<$1span>");
 
-      documentBody.InnerHtml = bodyInnerHtml;
+      documentBody.SetInnerHtml(bodyInnerHtml);
     }
 
-    internal HtmlNode ExtractArticleTitle(HtmlDocument document)
+    internal XNode ExtractArticleTitle(XDocument document)
     {
       var documentBody = GetOrCreateBody(document);
       string documentTitle = document.GetTitle() ?? "";
@@ -282,7 +282,7 @@ namespace NReadability
 
         if (levelOneHeaders.Count() == 1)
         {
-          currentTitle = levelOneHeaders.First().InnerText;
+          currentTitle = GetInnerText(levelOneHeaders.First());
         }
       }
 
@@ -293,49 +293,46 @@ namespace NReadability
         currentTitle = documentTitle;
       }
 
-      var articleTitleNode = document.CreateElement("h1");
+      var articleTitleNode = new XElement("h1");
 
-      articleTitleNode.InnerHtml = currentTitle;
+      articleTitleNode.SetInnerHtml(currentTitle);
 
       return articleTitleNode;
     }
 
-    internal HtmlNode ExtractArticleContent(HtmlDocument document)
+    internal XNode ExtractArticleContent(XDocument document)
     {
       StripUnlikelyCandidates(document);
 
       var candidatesForArticleContent = FindCandidatesForArticleContent(document);
 
-      HtmlNode topCandidateNode = DetermineTopCandidateNode(document, candidatesForArticleContent);
-      HtmlNode articleContentNode = CreateArticleContentNode(document, topCandidateNode);
+      XElement topCandidateNode = DetermineTopCandidateNode(document, candidatesForArticleContent);
+      XElement articleContentNode = CreateArticleContentNode(document, topCandidateNode);
 
       PrepareArticleContentNode(articleContentNode);
 
       return articleContentNode;
     }
 
-    internal void GlueDocument(HtmlDocument document, HtmlNode articleTitleNode, HtmlNode articleContentNode)
+    internal void GlueDocument(XDocument document, XNode articleTitleNode, XNode articleContentNode)
     {
-      var rootNode = document.DocumentNode;
       var documentBody = GetOrCreateBody(document);
 
       /* Include readability.css stylesheet. */
-      var headNode = rootNode.GetElementsByTagName("head").FirstOrDefault();
+      var headNode = document.GetElementsByTagName("head").FirstOrDefault();
 
       if (headNode == null)
       {
-        headNode = document.CreateElement("head");
-
-        var parentNode = documentBody.ParentNode ?? rootNode;
-
-        parentNode.InsertBefore(headNode, documentBody);
+        headNode = new XElement("head");
+        // TODO: test this
+        documentBody.AddBeforeSelf(headNode);
       }
 
-      var styleNode = document.CreateElement("style");
+      var styleNode = new XElement("style");
 
       styleNode.SetAttributeValue("type", "text/css");
 
-      var readabilityStylesheetStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ReadabilityStylesheetResourceName);
+      var readabilityStylesheetStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(_ReadabilityStylesheetResourceName);
 
       if (readabilityStylesheetStream == null)
       {
@@ -344,10 +341,10 @@ namespace NReadability
 
       using (var sr = new StreamReader(readabilityStylesheetStream))
       {
-        styleNode.InnerHtml = sr.ReadToEnd();
+        styleNode.SetInnerHtml(sr.ReadToEnd());
       }
 
-      headNode.AppendChild(styleNode);
+      headNode.Add(styleNode);
 
       /* Apply reading style to body. */
       string readingStyleClass = GetReadingStyleClass(_readingStyle);
@@ -356,60 +353,68 @@ namespace NReadability
       documentBody.SetStyle("display: block;");
 
       /* Create inner div. */
-      var innerDiv = document.CreateElement("div");
+      var innerDiv = new XElement("div");
 
       innerDiv.SetId(InnerDivId);
       innerDiv.SetClass(GetReadingMarginClass(_readingMargin) + " " + GetReadingSizeClass(_readingSize));
 
       if (articleTitleNode != null)
       {
-        innerDiv.AppendChild(articleTitleNode);
+        innerDiv.Add(articleTitleNode);
       }
 
       if (articleContentNode != null)
       {
-        innerDiv.AppendChild(articleContentNode);
+        innerDiv.Add(articleContentNode);
       }
 
       /* Create overlay div. */
-      var overlayDiv = document.CreateElement("div");
+      var overlayDiv = new XElement("div");
 
       overlayDiv.SetId(OverlayDivId);
       overlayDiv.SetClass(readingStyleClass);
-      overlayDiv.AppendChild(innerDiv);
+      overlayDiv.Add(innerDiv);
 
       /* Clear the old HTML, insert the new content. */
-      documentBody.RemoveAllChildren();
-      documentBody.AppendChild(overlayDiv);
+      documentBody.RemoveAll();
+      documentBody.Add(overlayDiv);
     }
 
-    internal void StripUnlikelyCandidates(HtmlDocument document)
+    internal void StripUnlikelyCandidates(XDocument document)
     {
       if (_dontStripUnlikelys)
       {
         return;
       }
 
-      var documentNode = document.DocumentNode;
+      var documentNode = document;
 
       new NodesTraverser(
         node =>
         {
-          string nodeName = node.Name;
+          // TODO: maybe traverser should traverse only elements?
+          var element = node as XElement;
+
+          if (element == null)
+          {
+            return;
+          }
+
+          string elementName = element.Name != null ? (element.Name.LocalName ?? "") : "";
 
           /* Remove unlikely candidates. */
-          string unlikelyMatchString = node.GetClass() + node.GetId();
+          string unlikelyMatchString = element.GetClass() + element.GetId();
 
           if (unlikelyMatchString.Length > 0
-           && !"body".Equals(nodeName, StringComparison.OrdinalIgnoreCase)
+           && !"body".Equals(elementName, StringComparison.OrdinalIgnoreCase)
            && _UnlikelyCandidatesRegex.IsMatch(unlikelyMatchString)
            && !_OkMaybeItsACandidateRegex.IsMatch(unlikelyMatchString))
           {
-            HtmlNode parentNode = node.ParentNode;
+            var parentElement = node.Parent;
 
-            if (parentNode != null)
+            if (parentElement != null)
             {
-              parentNode.RemoveChild(node);
+              element.Remove();
             }
 
             // node has been removed - we can go to the next one
@@ -417,12 +422,12 @@ namespace NReadability
           }
 
           /* Turn all divs that don't have children block level elements into p's or replace text nodes within the div with p's. */
-          if ("div".Equals(nodeName, StringComparison.OrdinalIgnoreCase))
+          if ("div".Equals(elementName, StringComparison.OrdinalIgnoreCase))
           {
-            if (!_DivToPElementsRegex.IsMatch(node.InnerHtml))
+            if (!_DivToPElementsRegex.IsMatch(element.GetInnerHtml()))
             {
               // no block elements inside - change to p
-              node.Name = "p";
+              element.Name = "p";
             }
             else
             {
@@ -430,21 +435,21 @@ namespace NReadability
               new ChildNodesTraverser(
                 childNode =>
                   {
-                    if (childNode.NodeType != HtmlNodeType.Text
+                    if (childNode.NodeType != XmlNodeType.Text
                      || GetInnerText(childNode).Length == 0)
                     {
                       return;
                     }
 
-                    HtmlNode paraNode = document.CreateElement("p");
+                    var paraElement = new XElement("p");
 
                     // NOTE: we're not using GetInnerText() here; instead we're getting raw InnerText to preserver whitespaces
-                    paraNode.InnerHtml = childNode.InnerText;
+                    paraElement.SetInnerHtml(((XText)childNode).Value);
 
-                    paraNode.SetClass(ReadabilityStyledCssClass);
-                    paraNode.SetStyle("display: inline;");
+                    paraElement.SetClass(ReadabilityStyledCssClass);
+                    paraElement.SetStyle("display: inline;");
 
-                    node.ReplaceChild(paraNode, childNode);
+                    childNode.ReplaceWith(paraElement);
                   }
                 ).Traverse(node);
             }
@@ -452,10 +457,10 @@ namespace NReadability
         }).Traverse(documentNode);
     }
 
-    internal IEnumerable<HtmlNode> FindCandidatesForArticleContent(HtmlDocument document)
+    internal IEnumerable<XElement> FindCandidatesForArticleContent(XDocument document)
     {
-      var paraNodes = document.DocumentNode.GetElementsByTagName("p");
-      var candidateNodes = new HashSet<HtmlNode>();
+      var paraNodes = document.GetElementsByTagName("p");
+      var candidateNodes = new HashSet<XElement>();
 
       _nodesScores.Clear();
 
@@ -468,8 +473,8 @@ namespace NReadability
           continue;
         }
 
-        var parentNode = paraNode.ParentNode;
-        var grandParentNode = parentNode != null ? parentNode.ParentNode : null;
+        var parentNode = paraNode.Parent;
+        var grandParentNode = parentNode != null ? parentNode.Parent : null;
         int score = 1; // 1 point for having a paragraph
 
         // Add points for any comma-segments within this paragraph.
@@ -496,11 +501,11 @@ namespace NReadability
       return candidateNodes;
     }
 
-    internal HtmlNode DetermineTopCandidateNode(HtmlDocument document, IEnumerable<HtmlNode> candidatesForArticleContent)
+    internal XElement DetermineTopCandidateNode(XDocument document, IEnumerable<XElement> candidatesForArticleContent)
     {
-      HtmlNode topCandidateNode = null;
+      XElement topCandidateNode = null;
 
-      foreach (HtmlNode candidateNode in candidatesForArticleContent)
+      foreach (XElement candidateNode in candidatesForArticleContent)
       {
         float candidateScore = GetNodeScore(candidateNode);
 
@@ -518,28 +523,29 @@ namespace NReadability
       }
 
       if (topCandidateNode == null
-       || "body".Equals(topCandidateNode.Name, StringComparison.OrdinalIgnoreCase))
+        || "body".Equals(topCandidateNode.Name != null ? topCandidateNode.Name.LocalName : null, StringComparison.OrdinalIgnoreCase))
       {
-        topCandidateNode = document.CreateElement("div");
+        topCandidateNode = new XElement("div");
 
         var documentBody = GetOrCreateBody(document);
 
-        topCandidateNode.AppendChildren(documentBody.ChildNodes);
+        // TODO: search for all references to Descendants(), DescendantNodes() and Elements()
+        topCandidateNode.Add(documentBody.Nodes());
       }
 
       return topCandidateNode;
     }
 
-    internal HtmlNode CreateArticleContentNode(HtmlDocument document, HtmlNode topCandidateNode)
+    internal XElement CreateArticleContentNode(XDocument document, XNode topCandidateNode)
     {
       /* Now that we have the top candidate, look through its siblings for content that might also be related.
        * Things like preambles, content split by ads that we removed, etc. */
 
-      var articleContentNode = document.CreateElement("div");
+      var articleContentNode = new XElement("div");
 
       articleContentNode.SetId(ContentDivId);
 
-      HtmlNode parentNode = topCandidateNode.ParentNode;
+      var parentNode = topCandidateNode.Parent;
 
       if (parentNode == null)
       {
@@ -547,8 +553,8 @@ namespace NReadability
         return articleContentNode;
       }
 
-      IEnumerable<HtmlNode> siblingNodes = parentNode.ChildNodes;
-      
+      IEnumerable<XNode> siblingNodes = parentNode.Nodes();
+
       float topCandidateNodeScore = GetNodeScore(topCandidateNode);
       float siblingScoreThreshold =
         Math.Max(
@@ -559,7 +565,9 @@ namespace NReadability
       foreach (var siblingNode in siblingNodes)
       {
         bool append = false;
-        string siblingNodeName = siblingNode.Name;
+        // TODO: only XElement?
+        var siblingElement = siblingNode as XElement; 
+        string siblingNodeName = siblingElement != null && siblingElement.Name != null ? (siblingElement.Name.LocalName ?? "") : "";
 
         if (siblingNode == articleContentNode)
         {
@@ -598,7 +606,7 @@ namespace NReadability
 
         if (append)
         {
-          HtmlNode nodeToAppend;
+          XNode nodeToAppend;
 
           if ("div".Equals(siblingNodeName, StringComparison.OrdinalIgnoreCase)
            || "p".Equals(siblingNodeName, StringComparison.OrdinalIgnoreCase))
@@ -610,21 +618,31 @@ namespace NReadability
             /* We have a node that isn't a common block level element, like a form or td tag.
              * Turn it into a div so it doesn't get filtered out later by accident. */
 
-            nodeToAppend = document.CreateElement("div");
+            var elementToAppend = new XElement("div");
 
-            nodeToAppend.SetId(siblingNode.GetId());
-            nodeToAppend.SetClass(siblingNode.GetClass());
-            nodeToAppend.AppendChildren(siblingNode.ChildNodes);
+            nodeToAppend = elementToAppend;
+
+            if (siblingElement != null)
+            {
+              elementToAppend.SetId(siblingElement.GetId());
+              elementToAppend.SetClass(siblingElement.GetClass());
+              elementToAppend.Add(siblingElement.Nodes());
+            }
+            else
+            {
+              // TODO: test this
+              elementToAppend.Add(siblingNode);
+            }
           }
 
-          articleContentNode.AppendChild(nodeToAppend);
+          articleContentNode.Add(nodeToAppend);
         }
       }
 
       return articleContentNode;
     }
 
-    internal void PrepareArticleContentNode(HtmlNode articleContentNode)
+    internal void PrepareArticleContentNode(XElement articleContentNode)
     {
       CleanStyles(articleContentNode);
       KillBreaks(articleContentNode);
@@ -651,7 +669,7 @@ namespace NReadability
 
       /* Remove extra paragraphs. */
       var paraNodes = articleContentNode.GetElementsByTagName("p");
-      var nodesToRemove = new List<HtmlNode>();
+      var nodesToRemove = new List<XElement>();
 
       foreach (var paraNode in paraNodes)
       {
@@ -672,15 +690,22 @@ namespace NReadability
         nodesToRemove.Add(paraNode);
       }
 
-      RemoveNodes(nodesToRemove);
+      RemoveElements(nodesToRemove);
 
       /* Remove br's that are directly before paragraphs. */
-      articleContentNode.InnerHtml = _BreakBeforeParagraphRegex.Replace(articleContentNode.InnerHtml, "<p");
+      articleContentNode.SetInnerHtml(_BreakBeforeParagraphRegex.Replace(articleContentNode.GetInnerHtml(), "<p"));
     }
 
-    internal float GetLinksDensity(HtmlNode node)
+    internal float GetLinksDensity(XNode node)
     {
-      string nodeInnerText = GetInnerText(node);
+      var element = node as XElement;
+
+      if (element == null)
+      {
+        return 0.0f;
+      }
+
+      string nodeInnerText = GetInnerText(element);
       int nodeInnerTextLength = nodeInnerText.Length;
 
       if (nodeInnerTextLength == 0)
@@ -690,7 +715,7 @@ namespace NReadability
       }
 
       int linksLength =
-        node.GetElementsByTagName("a")
+        element.GetElementsByTagName("a")
           .Sum(anchorNode => GetInnerText(anchorNode).Length);
 
       return (float)linksLength / nodeInnerTextLength;
@@ -704,7 +729,7 @@ namespace NReadability
     /// <summary>
     /// Get "class/id weight" of the given <paramref name="node" />. Uses regular expressions to tell if this element looks good or bad.
     /// </summary>
-    internal int GetClassWeight(HtmlNode node)
+    internal int GetClassWeight(XElement element)
     {
       if (_dontWeightClasses)
       {
@@ -714,7 +739,7 @@ namespace NReadability
       int weight = 0;
 
       /* Look for a special classname. */
-      string nodeClass = node.GetClass();
+      string nodeClass = element.GetClass();
 
       if (nodeClass.Length > 0)
       {
@@ -730,7 +755,7 @@ namespace NReadability
       }
 
       /* Look for a special ID */
-      string nodeId = node.GetId();
+      string nodeId = element.GetId();
 
       if (nodeId.Length > 0)
       {
@@ -748,9 +773,29 @@ namespace NReadability
       return weight;
     }
 
-    internal string GetInnerText(HtmlNode node, bool dontNormalizeSpaces)
+    internal string GetInnerText(XNode node, bool dontNormalizeSpaces)
     {
-      string result = (node.InnerText ?? "").Trim();
+      if (node == null)
+      {
+        throw new ArgumentNullException("node");
+      }
+
+      string result;
+
+      if (node is XElement)
+      {
+        result = ((XElement)node).Value;
+      }
+      else if (node is XText)
+      {
+        result = ((XText)node).Value;
+      }
+      else
+      {
+        throw new NotSupportedException(string.Format("Nodes of type '{0}' are not supported.", node.GetType()));
+      }
+
+      result = (result ?? "").Trim();
 
       if (!dontNormalizeSpaces)
       {
@@ -760,7 +805,7 @@ namespace NReadability
       return result;
     }
 
-    internal string GetInnerText(HtmlNode node)
+    internal string GetInnerText(XNode node)
     {
       return GetInnerText(node, _dontNormalizeSpacesInTextContent);
     }
@@ -768,28 +813,28 @@ namespace NReadability
     /// <summary>
     /// Removes extraneous break tags from a <param name="node" />.
     /// </summary>
-    internal void KillBreaks(HtmlNode node)
+    internal void KillBreaks(XElement node)
     {
-      node.InnerHtml = _KillBreaksRegex.Replace(node.InnerHtml, "<br />");
+      node.SetInnerHtml(_KillBreaksRegex.Replace(node.GetInnerHtml(), "<br />"));
     }
 
     /// <summary>
     /// Cleans a node of all nodes with name <paramref name="nodeName" />.
     /// (Unless it's a youtube/vimeo video. People love movies.)
     /// </summary>
-    internal void Clean(HtmlNode rootNode, string nodeName)
+    internal void Clean(XElement rootNode, string nodeName)
     {
       var nodes = rootNode.GetElementsByTagName(nodeName);
       bool isEmbed = "object".Equals(nodeName, StringComparison.OrdinalIgnoreCase)
                   || "embed".Equals(nodeName, StringComparison.OrdinalIgnoreCase);
-      var nodesToRemove = new List<HtmlNode>();
+      var nodesToRemove = new List<XElement>();
 
       foreach (var node in nodes)
       {
         /* Allow youtube and vimeo videos through as people usually want to see those. */
         if (isEmbed
          && (_VideoRegex.IsMatch(node.GetAttributesString("|"))
-          || _VideoRegex.IsMatch(node.InnerHtml)))
+          || _VideoRegex.IsMatch(node.GetInnerHtml())))
         {
           continue;
         }
@@ -797,14 +842,14 @@ namespace NReadability
         nodesToRemove.Add(node);
       }
 
-      RemoveNodes(nodesToRemove);
+      RemoveElements(nodesToRemove);
     }
 
     /// <summary>
     /// Cleans a <param name="rootNode" /> of all nodes with name <param name="nodeName" /> if they look fishy.
     /// "Fishy" is an algorithm based on content length, classnames, link density, number of images and embeds, etc.
     /// </summary>
-    internal void CleanConditionally(HtmlNode rootNode, string nodeName)
+    internal void CleanConditionally(XElement rootNode, string nodeName)
     {
       if (nodeName == null)
       {
@@ -812,7 +857,7 @@ namespace NReadability
       }
 
       var nodes = rootNode.GetElementsByTagName(nodeName);
-      var nodesToRemove = new List<HtmlNode>();
+      var nodesToRemove = new List<XElement>();
 
       foreach (var node in nodes)
       {
@@ -836,7 +881,7 @@ namespace NReadability
           int imgsCount = node.GetElementsByTagName("img").Count();
           int lisCount = node.GetElementsByTagName("li").Count();
           int inputsCount = node.GetElementsByTagName("input").Count();
-          
+
           // while counting embeds we omit video-embeds
           int embedsCount =
             node.GetElementsByTagName("embed")
@@ -861,19 +906,19 @@ namespace NReadability
         }
       } /* end foreach */
 
-      RemoveNodes(nodesToRemove);
+      RemoveElements(nodesToRemove);
     }
 
     /// <summary>
     /// Cleans out spurious headers from a <param name="node" />. Checks things like classnames and link density.
     /// </summary>
-    internal void CleanHeaders(HtmlNode node)
+    internal void CleanHeaders(XElement element)
     {
-      var nodesToRemove = new List<HtmlNode>();
+      var nodesToRemove = new List<XElement>();
 
       for (int headerLevel = 1; headerLevel < 7; headerLevel++)
       {
-        var headerNodes = node.GetElementsByTagName("h" + headerLevel);
+        var headerNodes = element.GetElementsByTagName("h" + headerLevel);
 
         foreach (var headerNode in headerNodes)
         {
@@ -885,32 +930,34 @@ namespace NReadability
         }
       }
 
-      RemoveNodes(nodesToRemove);
+      RemoveElements(nodesToRemove);
     }
 
     /// <summary>
     /// Removes the style attribute from the specified <param name="rootNode" /> and all nodes underneath it.
     /// </summary>
-    internal void CleanStyles(HtmlNode rootNode)
+    internal void CleanStyles(XNode rootNode)
     {
       new NodesTraverser(
         node =>
+        {
+          var element = node as XElement;
+
+          if (element == null)
           {
-            if (node.NodeType != HtmlNodeType.Element)
-            {
-              return;
-            }
+            return;
+          }
 
-            string nodeClass = node.GetClass();
+          string nodeClass = element.GetClass();
 
-            if (nodeClass.Contains(ReadabilityStyledCssClass))
-            {
-              // don't remove the style if that's we who have styled this node
-              return;
-            }
+          if (nodeClass.Contains(ReadabilityStyledCssClass))
+          {
+            // don't remove the style if that's we who have styled this node
+            return;
+          }
 
-            node.SetStyle(null);
-          }).Traverse(rootNode);
+          element.SetStyle(null);
+        }).Traverse(rootNode);
     }
 
     internal string GetUserStyleClass(string prefix, string enumStr)
@@ -921,25 +968,25 @@ namespace NReadability
       enumStr.Aggregate(
         suffixSB,
         (sb, ch) =>
+        {
+          if (Char.IsUpper(ch))
           {
-            if (Char.IsUpper(ch))
+            if (wasUpperCaseCharacterSeen)
             {
-              if (wasUpperCaseCharacterSeen)
-              {
-                sb.Append('-');
-              }
-
-              wasUpperCaseCharacterSeen = true;
-
-              sb.Append(Char.ToLower(ch));
-            }
-            else
-            {
-              sb.Append(ch);
+              sb.Append('-');
             }
 
-            return sb;
-          });
+            wasUpperCaseCharacterSeen = true;
+
+            sb.Append(Char.ToLower(ch));
+          }
+          else
+          {
+            sb.Append(ch);
+          }
+
+          return sb;
+        });
 
       return string.Format("{0}-{1}", prefix, suffixSB).TrimEnd('-');
     }
@@ -948,23 +995,22 @@ namespace NReadability
 
     #region Private helper methods
 
-    private HtmlNode GetOrCreateBody(HtmlDocument document)
+    private XElement GetOrCreateBody(XDocument document)
     {
       var documentBody = document.GetBody();
 
       if (documentBody == null)
       {
-        var rootNode = document.DocumentNode;
-        var htmlNode = rootNode.GetElementsByTagName("html").FirstOrDefault();
+        var htmlNode = document.GetChildrenByTagName("html").FirstOrDefault();
 
         if (htmlNode == null)
         {
-          htmlNode = document.CreateElement("html");
-          rootNode.AppendChild(htmlNode);
+          htmlNode = new XElement("html");
+          document.Add(htmlNode);
         }
 
-        documentBody = document.CreateElement("body");
-        htmlNode.AppendChild(documentBody);
+        documentBody = new XElement("body");
+        htmlNode.Add(documentBody);
       }
 
       return documentBody;
@@ -985,26 +1031,26 @@ namespace NReadability
       return GetUserStyleClass("size", readingSize.ToString());
     }
 
-    private void AddPointsToNodeScore(HtmlNode node, int pointsToAdd)
+    private void AddPointsToNodeScore(XNode node, int pointsToAdd)
     {
       float currentScore = _nodesScores.ContainsKey(node) ? _nodesScores[node] : 0.0f;
 
       _nodesScores[node] = currentScore + pointsToAdd;
     }
 
-    private float GetNodeScore(HtmlNode node)
+    private float GetNodeScore(XNode node)
     {
       return _nodesScores.ContainsKey(node) ? _nodesScores[node] : 0.0f;
     }
 
-    private void SetNodeScore(HtmlNode node, float score)
+    private void SetNodeScore(XNode node, float score)
     {
       _nodesScores[node] = score;
     }
 
-    private void RemoveNodes(IEnumerable<HtmlNode> nodesToRemove)
+    private void RemoveElements(IEnumerable<XElement> elementsToRemove)
     {
-      nodesToRemove.ForEach(nodeToRemove => nodeToRemove.Remove());
+      elementsToRemove.ForEach(nodeToRemove => nodeToRemove.Remove());
     }
 
     #endregion
