@@ -363,7 +363,7 @@ namespace NReadability.Tests
 
     [Test]
     [Sequential]
-    public void TestSampleInputs([Values(1, 2, 3, 4)]int sampleInputNumber)
+    public void TestSampleInputs([Values(1, 2, 3, 4, 5)]int sampleInputNumber)
     {
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
@@ -404,6 +404,12 @@ namespace NReadability.Tests
           Assert.IsTrue(transcodedContent.Contains("Nulla facilisi. Proin lacinia venenatis elit, nec ornare elit varius eu."));
           Assert.IsTrue(transcodedContent.Contains("Duis vitae ultricies nibh."));
           Assert.IsTrue(transcodedContent.Contains("Vestibulum dictum iaculis nisl, lobortis luctus justo porttitor eu."));
+          break;
+
+        case 5: // mnmlist.com - "clear distractions"
+          Assert.IsTrue(transcodedContent.Contains("When it comes to minimalism in"));
+          Assert.IsTrue(transcodedContent.Contains("Here’s how:"));
+          Assert.IsTrue(transcodedContent.Contains("Set limits on your work hours. If your time is limited, you’ll find ways to make the most of that limited time."));
           break;
 
         default:
