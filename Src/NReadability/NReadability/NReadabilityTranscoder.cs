@@ -483,14 +483,14 @@ namespace NReadability
         score += Math.Min(innerText.Length / _ParagraphSegmentLength, _MaxPointsForSegmentsCount);
 
         // Add the score to the parent.
-        if (parentElement != null)
+        if (parentElement != null && (parentElement.Name == null || !"html".Equals(parentElement.Name.LocalName, StringComparison.OrdinalIgnoreCase)))
         {
           candidateElements.Add(parentElement);
           AddPointsToElementScore(parentElement, score);
         }
 
         // Add half the score to the grandparent.
-        if (grandParentElement != null)
+        if (grandParentElement != null && (grandParentElement.Name == null || !"html".Equals(grandParentElement.Name.LocalName, StringComparison.OrdinalIgnoreCase)))
         {
           candidateElements.Add(grandParentElement);
           AddPointsToElementScore(grandParentElement, score / 2);
@@ -547,7 +547,10 @@ namespace NReadability
 
       if (parentElement == null)
       {
-        // shouldn't happen (unless the found top candidate element has no parent for some reason)
+        // if the top candidate element has no parent, it means that it's an element created by us and detached from the document,
+        // so we don't analyze its siblings and just attach it to the article content
+        articleContentElement.Add(topCandidateElement);
+
         return articleContentElement;
       }
 

@@ -361,11 +361,20 @@ namespace NReadability.Tests
 
     [Test]
     [Sequential]
-    public void TestSampleInputs([Values(1, 2, 3)]int sampleInputNumber)
+    public void TestSampleInputs([Values(1, 2, 3, 4)]int sampleInputNumber)
     {
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
       string transcodedContent = _nReadabilityTranscoder.Transcode(content);
+
+      const string outputDir = "SampleOutput";
+
+      if (!Directory.Exists(outputDir))
+      {
+        Directory.CreateDirectory(outputDir);
+      }
+
+      File.WriteAllText(Path.Combine(outputDir, string.Format("SampleOutput_{0}.html", sampleInputNumberStr)), transcodedContent);
 
       switch (sampleInputNumber)
       {
@@ -387,18 +396,17 @@ namespace NReadability.Tests
           Assert.IsTrue(transcodedContent.Contains("And, most of all, thanks to"));
           break;
 
+        case 4: // Sample page; only with paragraphs
+          Assert.IsTrue(transcodedContent.Contains("Lorem ipsum dolor sit amet, consectetur adipiscing elit."));
+          Assert.IsTrue(transcodedContent.Contains("Mauris nec massa ante, id fringilla nisi."));
+          Assert.IsTrue(transcodedContent.Contains("Nulla facilisi. Proin lacinia venenatis elit, nec ornare elit varius eu."));
+          Assert.IsTrue(transcodedContent.Contains("Duis vitae ultricies nibh."));
+          Assert.IsTrue(transcodedContent.Contains("Vestibulum dictum iaculis nisl, lobortis luctus justo porttitor eu."));
+          break;
+
         default:
           throw new NotSupportedException("Unknown sample input number (" + sampleInputNumber + "). Have you added another sample input? If so, then add appropriate asserts here as well.");
       }
-
-      const string outputDir = "SampleOutput";
-
-      if (!Directory.Exists(outputDir))
-      {
-        Directory.CreateDirectory(outputDir);
-      }
-
-      File.WriteAllText(Path.Combine(outputDir, string.Format("SampleOutput_{0}.html", sampleInputNumberStr)), transcodedContent);
     }
 
     #endregion
