@@ -201,7 +201,9 @@ namespace NReadability.Tests
       Assert.IsNotNull(articleContentElement);
       Assert.AreEqual("div", articleContentElement.Name.LocalName);
       Assert.IsNotNullOrEmpty(articleContentElement.GetId());
-      Assert.AreEqual(0, articleContentElement.Nodes().Count());
+      
+      // only one empty div should be inside
+      Assert.AreEqual(1, articleContentElement.Nodes().Count());
     }
 
     [Test]
