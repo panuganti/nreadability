@@ -62,20 +62,6 @@
         <include name="*.xml" />
       </fileset>
     </copy>
-    <echo message="Merging assemblies." />
-    <move file="Dist\NReadability.dll" tofile="Dist\NReadability.tmp.dll" />
-    <exec program="Tools\ILMerge\ILMerge.exe">
-      <arg value="/out:Dist\NReadability.dll" />
-      <arg value="Dist\NReadability.tmp.dll" />
-      <arg value="Dist\SgmlReaderDll.dll" />
-    </exec>
-    <delete>
-      <fileset basedir="Dist">
-        <include name="*.*" />
-        <exclude name="NReadability.dll" />
-        <exclude name="NReadability.xml" />
-      </fileset>
-    </delete>
     <copy file="Bin\NReadability.Console.exe" todir="Dist" />
     <copy file="LICENSE.txt" todir="Dist" />
     <copy todir="Dist">
