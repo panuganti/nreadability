@@ -67,7 +67,7 @@ namespace NReadability
       {
         sgmlReader.CaseFolding = CaseFolding.ToLower;
         sgmlReader.DocType = "HTML";
-        sgmlReader.WhitespaceHandling = WhitespaceHandling.All;
+        sgmlReader.WhitespaceHandling = WhitespaceHandling.None;
 
         using (var sr = new StringReader(htmlContent))
         {

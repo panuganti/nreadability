@@ -18,6 +18,8 @@
  * limitations under the License.
  */
 
+using System;
+using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
@@ -33,9 +35,57 @@ namespace NReadability
     /// <summary>
     /// TODO: comment
     /// </summary>
-    public string SerializeDocument(XDocument document, bool prettyPrint)
+    public string SerializeDocument(XDocument document, bool prettyPrint, bool dontIncludeMetaContentTypeElement, bool dontIncludeDocType)
     {
-      return document.ToString(prettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
+      if (!dontIncludeMetaContentTypeElement)
+      {
+        var documentRoot = document.Root;
+
+        if (documentRoot == null)
+        {
+          throw new ArgumentException("The document must have a root.");
+        }
+
+        if (documentRoot.Name == null || !"html".Equals(documentRoot.Name.LocalName, StringComparison.OrdinalIgnoreCase))
+        {
+          throw new ArgumentException("The document's root must be an html element.");
+        }
+
+        var headElement = documentRoot.GetChildrenByTagName("head").FirstOrDefault();
+
+        if (headElement == null)
+        {
+          headElement = new XElement("head");
+          documentRoot.Add(headElement);
+        }
+
+        var metaContentTypeElement =
+          (from metaElement in headElement.GetChildrenByTagName("meta")
+           where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""), StringComparison.OrdinalIgnoreCase)
+           select metaElement).FirstOrDefault();
+
+        if (metaContentTypeElement != null)
+        {
+          metaContentTypeElement.Remove();
+        }
+
+        metaContentTypeElement =
+          new XElement(
+            XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
+            new XAttribute("http-equiv", "Content-Type"),
+            new XAttribute("content", "text/html; charset=utf-8"));
+
+        headElement.AddFirst(metaContentTypeElement);
+      }
+
+      string result = document.ToString(prettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
+
+      if (!dontIncludeDocType)
+      {
+        result = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\r\n\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n" + result;
+      }
+
+      return result;
     }
 
     /// <summary>
@@ -43,7 +93,7 @@ namespace NReadability
     /// </summary>
     public string SerializeDocument(XDocument document)
     {
-      return SerializeDocument(document, false);
+      return SerializeDocument(document, false, false, false);
     }
 
     #endregion

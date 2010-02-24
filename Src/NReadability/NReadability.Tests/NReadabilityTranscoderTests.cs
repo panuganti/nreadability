@@ -25,6 +25,7 @@ using NUnit.Framework;
 using System.Globalization;
 using System.IO;
 using System.Xml;
+using System.Text;
 
 namespace NReadability.Tests
 {
@@ -362,8 +363,14 @@ namespace NReadability.Tests
     #region Transcode tests
 
     [Test]
+    public void a2()
+    {
+      TestSampleInputs(2);
+    }
+
+    [Test]
     [Sequential]
-    public void TestSampleInputs([Values(1, 2, 3, 4, 5)]int sampleInputNumber)
+    public void TestSampleInputs([Values(1, 2, 3, 4, 5, 6)]int sampleInputNumber)
     {
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
@@ -376,7 +383,10 @@ namespace NReadability.Tests
         Directory.CreateDirectory(outputDir);
       }
 
-      File.WriteAllText(Path.Combine(outputDir, string.Format("SampleOutput_{0}.html", sampleInputNumberStr)), transcodedContent);
+      File.WriteAllText(
+        Path.Combine(outputDir, string.Format("SampleOutput_{0}.html", sampleInputNumberStr)),
+        transcodedContent,
+        Encoding.UTF8);
 
       switch (sampleInputNumber)
       {
@@ -398,7 +408,7 @@ namespace NReadability.Tests
           Assert.IsTrue(transcodedContent.Contains("And, most of all, thanks to"));
           break;
 
-        case 4: // Sample page; only with paragraphs
+        case 4: // sample page; only with paragraphs
           Assert.IsTrue(transcodedContent.Contains("Lorem ipsum dolor sit amet, consectetur adipiscing elit."));
           Assert.IsTrue(transcodedContent.Contains("Mauris nec massa ante, id fringilla nisi."));
           Assert.IsTrue(transcodedContent.Contains("Nulla facilisi. Proin lacinia venenatis elit, nec ornare elit varius eu."));
@@ -410,6 +420,10 @@ namespace NReadability.Tests
           Assert.IsTrue(transcodedContent.Contains("When it comes to minimalism in"));
           Assert.IsTrue(transcodedContent.Contains("Here’s how:"));
           Assert.IsTrue(transcodedContent.Contains("Set limits on your work hours. If your time is limited, you’ll find ways to make the most of that limited time."));
+          break;
+
+        case 6: // sample page; nbsp
+          Assert.IsTrue(transcodedContent.Contains("1.  Item 1.")); // there's a non-breaking space here
           break;
 
         default:
@@ -428,7 +442,16 @@ namespace NReadability.Tests
         content = content.Trim();
       }
 
-      Assert.AreEqual("<html />", content);
+      var document = new SgmlDomBuilder().BuildDocument(content);
+
+      Assert.AreEqual(
+        0,
+        (from node in document.DescendantNodes()
+        let name = node is XElement && ((XElement)node).Name != null ? ((XElement)node).Name.LocalName : ""
+        where !"html".Equals(name, StringComparison.OrdinalIgnoreCase)
+           && !"head".Equals(name, StringComparison.OrdinalIgnoreCase)
+           && !"meta".Equals(name, StringComparison.OrdinalIgnoreCase)
+        select node).Count());
     }
 
     private static void AssertHtmlContentsAreEqual(string expectedContent, string actualContent)
