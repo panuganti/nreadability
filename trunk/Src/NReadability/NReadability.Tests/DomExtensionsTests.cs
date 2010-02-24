@@ -154,6 +154,28 @@ namespace NReadability.Tests
       Assert.AreEqual(innerHtml, element.GetInnerHtml());
     }
 
+    [Test]
+    public void Test_SetInnerHtml_html_with_entity_amp()
+    {
+      const string innerHtml = "&amp;";
+      var element = new XElement("div");
+
+      element.SetInnerHtml(innerHtml);
+
+      Assert.IsTrue(element.GetInnerHtml().Contains("&"));
+    }
+
+    [Test]
+    public void Test_SetInnerHtml_html_with_entity_raquo()
+    {
+      const string innerHtml = "&raquo;";
+      var element = new XElement("div");
+
+      element.SetInnerHtml(innerHtml);
+
+      Assert.IsTrue(element.GetInnerHtml().Contains("»"));
+    }
+
     #endregion
   }
 }

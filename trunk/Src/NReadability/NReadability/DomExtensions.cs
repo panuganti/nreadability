@@ -249,9 +249,14 @@ namespace NReadability
 
       element.RemoveAll();
 
-      var tmpElement = XElement.Parse(string.Format("<div>{0}</div>", html), LoadOptions.PreserveWhitespace);
+      var tmpElement = new SgmlDomBuilder().BuildDocument(html);
 
-      foreach (var node in tmpElement.Nodes())
+      if (tmpElement.Root == null)
+      {
+        return;
+      }
+
+      foreach (var node in tmpElement.Root.Nodes())
       {
         element.Add(node);
       }
