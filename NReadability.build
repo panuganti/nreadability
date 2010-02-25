@@ -69,6 +69,41 @@
         <include name="*.chm" />
       </fileset>
     </copy>
+    <call target="package" />
+  </target>
+  
+  <target name="package">
+    <!-- Package binary. -->
+    <property name="bin.zip.dir" value="NReadability-${nreadability.version}" />
+    <zip zipfile="Dist\${bin.zip.dir}.zip">
+      <fileset basedir="Dist" prefix="${bin.zip.dir}">
+        <include name="**\*" />
+        <exclude name="NReadability-*.zip" />
+      </fileset>
+    </zip>
+    <!-- Package source. -->
+    <property name="src.zip.dir" value="NReadability-${nreadability.version}-Src" />
+    <property name="tmp.svn.export.dir" value="tmp_svn_export" />
+    <delete dir="${tmp.svn.export.dir}" />
+    <echo message="Exporting SVN repository." />
+    <exec program="svn">
+      <arg value="export" />
+      <arg value="." />
+      <arg value="${tmp.svn.export.dir}" />
+    </exec>
+    <zip zipfile="Dist\${src.zip.dir}.zip">
+      <fileset basedir="${tmp.svn.export.dir}" prefix="${src.zip.dir}">
+        <include name="**\*" />
+      </fileset>
+    </zip>
+    <delete dir="${tmp.svn.export.dir}" />
+    <delete>
+      <fileset basedir="Dist">
+        <include name="**\*" />
+        <exclude name="${bin.zip.dir}.zip" />
+        <exclude name="${src.zip.dir}.zip" />
+      </fileset>
+    </delete>
   </target>
   
   <target name="clean">
