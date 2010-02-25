@@ -363,9 +363,9 @@ namespace NReadability.Tests
     #region Transcode tests
 
     [Test]
-    public void a2()
+    public void a6()
     {
-      TestSampleInputs(2);
+      TestSampleInputs(6);
     }
 
     [Test]

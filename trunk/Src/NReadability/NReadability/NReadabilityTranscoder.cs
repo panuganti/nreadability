@@ -301,6 +301,11 @@ namespace NReadability
         currentTitle = documentTitle;
       }
 
+      if (string.IsNullOrEmpty(currentTitle))
+      {
+        return null;
+      }
+
       var articleTitleElement = new XElement("h1");
 
       articleTitleElement.SetInnerHtml(currentTitle);
