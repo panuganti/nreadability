@@ -27,15 +27,17 @@ using System.IO;
 namespace NReadability
 {
   /// <summary>
-  /// TODO: comment
+  /// A class for constructing a DOM from HTML markup.
   /// </summary>
   public class SgmlDomBuilder
   {
     #region Public methods
 
     /// <summary>
-    /// TODO: comment
+    /// Constructs a DOM (System.Xml.Linq.XDocument) from HTML markup.
     /// </summary>
+    /// <param name="htmlContent">HTML markup from which the DOM is to be constructed.</param>
+    /// <returns>System.Linq.Xml.XDocument instance which is a DOM of the provided HTML markup.</returns>
     public XDocument BuildDocument(string htmlContent)
     {
       if (htmlContent == null)

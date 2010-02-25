@@ -188,8 +188,10 @@ namespace NReadability
     #region Public methods
 
     /// <summary>
-    /// TODO: comment
+    /// Extracts main article content from a HTML page.
     /// </summary>
+    /// <param name="htmlContent">HTML markup to process.</param>
+    /// <returns>HTML markup containing extracted article content.</returns>
     public string Transcode(string htmlContent)
     {
       var document = _agilityDomBuilder.BuildDocument(htmlContent);

@@ -25,15 +25,20 @@ using System.Xml.Linq;
 namespace NReadability
 {
   /// <summary>
-  /// TODO: comment
+  /// A class for serializing a DOM to string.
   /// </summary>
   public class SgmlDomSerializer
   {
     #region Public methods
 
     /// <summary>
-    /// TODO: comment
+    /// Serializes given DOM (System.Xml.Linq.XDocument object) to a string.
     /// </summary>
+    /// <param name="document">System.Xml.Linq.XDocument instance containing the DOM to be serialized.</param>
+    /// <param name="prettyPrint">Determines whether the output will be formatted.</param>
+    /// <param name="dontIncludeMetaContentTypeElement">Determines whether DOCTYPE will be included at the beginning of the output.</param>
+    /// <param name="dontIncludeDocType">Determines whether a meta tag with a content-type specification will be added/replaced in the output.</param>
+    /// <returns>Serialized representation of the DOM.</returns>
     public string SerializeDocument(XDocument document, bool prettyPrint, bool dontIncludeMetaContentTypeElement, bool dontIncludeDocType)
     {
       if (!dontIncludeMetaContentTypeElement)
@@ -88,8 +93,10 @@ namespace NReadability
     }
 
     /// <summary>
-    /// TODO: comment
+    /// Serializes given DOM (System.Xml.Linq.XDocument object) to a string.
     /// </summary>
+    /// <param name="document">System.Xml.Linq.XDocument instance containing the DOM to be serialized.</param>
+    /// <returns>Serialized representation of the DOM.</returns>
     public string SerializeDocument(XDocument document)
     {
       return SerializeDocument(document, false, false, false);
