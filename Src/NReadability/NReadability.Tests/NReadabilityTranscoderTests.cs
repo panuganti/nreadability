@@ -363,12 +363,6 @@ namespace NReadability.Tests
     #region Transcode tests
 
     [Test]
-    public void a6()
-    {
-      TestSampleInputs(6);
-    }
-
-    [Test]
     [Sequential]
     public void TestSampleInputs([Values(1, 2, 3, 4, 5, 6)]int sampleInputNumber)
     {

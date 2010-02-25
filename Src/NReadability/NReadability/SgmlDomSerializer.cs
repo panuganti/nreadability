@@ -19,6 +19,7 @@
  */
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
@@ -37,17 +38,6 @@ namespace NReadability
     /// </summary>
     public string SerializeDocument(XDocument document, bool prettyPrint, bool dontIncludeMetaContentTypeElement, bool dontIncludeDocType)
     {
-      // TODO:
-      var sb = new StringBuilder();
-
-      using (var sw = new EncodedStringWriter(sb))
-      {
-        document.Save(sw);
-      }
-
-      return sb.ToString();
-      // TODO:
-
       if (!dontIncludeMetaContentTypeElement)
       {
         var documentRoot = document.Root;
