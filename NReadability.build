@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <project name="NReadability" default="all">
 
-  <property name="nreadability.version" value="0.9.1.0" />
+  <property name="nreadability.version" value="1.0.0.0" />
   <property name="msbuild.path" value="C:\Windows\Microsoft.NET\Framework\v3.5\MSBuild.exe" />
 
   <echo message="Current NReadability version is ${nreadability.version}." />
