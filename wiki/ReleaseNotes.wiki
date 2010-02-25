@@ -1,5 +1,9 @@
 #summary This page contains release notes for all released versions.
 
+= Version 1.0.0.0 =
+
+Production-ready release of NReadability. No new functionality, only bug fixes.
+
 = Version 0.9.0.0 =
 
 First release of NReadability. It implements almost the whole set of features from [http://lab.arc90.com/experiments/readability/ Arc90's Readability bookmarklet]. However, there are a few things missing. Those are listed below:
