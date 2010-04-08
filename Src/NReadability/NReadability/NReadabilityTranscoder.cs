@@ -114,7 +114,7 @@ namespace NReadability
 
     #region Algorithm parameters
 
-    private readonly bool _dontStripUnlikelys;
+    private bool _dontStripUnlikelys;
     private readonly bool _dontNormalizeSpacesInTextContent;
     private readonly bool _dontWeightClasses;
     private readonly ReadingStyle _readingStyle;
@@ -203,7 +203,22 @@ namespace NReadability
 
       GlueDocument(document, articleTitleElement, articleContentElement);
 
-      // TODO: implement a fallback behaviour - rerun one more time with _dontStripUnlikelys and then with _dontWeightClasses
+      // fallback behaviour - rerun one more time with _dontStripUnlikelys if we have little content
+      if (!_dontStripUnlikelys && GetInnerText(articleContentElement).Length < 250)
+      {
+        try
+        {
+          _dontStripUnlikelys = true;
+
+          return Transcode(htmlContent);
+        }
+        finally
+        {
+          _dontStripUnlikelys = false;
+        }
+      }
+
+      // TODO: implement another fallback behaviour - rerun one more time with _dontWeightClasses
 
       return _agilityDomSerializer.SerializeDocument(document);
     }
