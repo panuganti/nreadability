@@ -467,15 +467,14 @@ namespace NReadability.Tests
       TestReplacingImageUrl("image.png", "/immortal.pl", "image.png");
     }
 
-    private void TestReplacingImageUrl(string srcAttribute, string url, string expectedImageUrl)
+    [Test]
+    public void TestReplacingLinksUrls()
     {
       string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
-      string htmlContent = "<html><body>" + dummyParagraphs + "<p><img SRC=\"" + srcAttribute + "\" /></p>" + dummyParagraphs + "</body></html>";
-      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, url);
+      string htmlContent = "<html><body>" + dummyParagraphs + "<p><a href=\"/wiki/article1\">link</a></p>" + dummyParagraphs + "</body></html>";
+      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle");
 
-      Assert.IsTrue(
-        transcodedContent.Contains("src=\"" + expectedImageUrl + "\""),
-        string.Format("Image url replacement failed. Src attribute: {0}, base url: {1}, expected image url: {2}", srcAttribute, url, expectedImageUrl));
+      Assert.IsTrue(transcodedContent.Contains("href=\"http://wikipedia.org/wiki/article1\""));
     }
 
     #endregion
@@ -538,6 +537,17 @@ namespace NReadability.Tests
                       ? element.Name.LocalName
                       : null,
                     StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private void TestReplacingImageUrl(string srcAttribute, string url, string expectedImageUrl)
+    {
+      string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
+      string htmlContent = "<html><body>" + dummyParagraphs + "<p><img src=\"" + srcAttribute + "\" /></p>" + dummyParagraphs + "</body></html>";
+      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, url);
+
+      Assert.IsTrue(
+        transcodedContent.Contains("src=\"" + expectedImageUrl + "\""),
+        string.Format("Image url replacement failed. Src attribute: {0}, base url: {1}, expected image url: {2}", srcAttribute, url, expectedImageUrl));
     }
 
     #endregion
