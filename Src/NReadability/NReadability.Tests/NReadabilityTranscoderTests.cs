@@ -425,6 +425,59 @@ namespace NReadability.Tests
       }
     }
 
+    [Test]
+    public void TestReplacingImageUrls()
+    {
+      TestReplacingImageUrl("http://example.com/image.jpg", "http://immortal.pl/doc.html", "http://example.com/image.jpg");
+      TestReplacingImageUrl("https://example.com/image.jpg", "http://immortal.pl", "https://example.com/image.jpg");
+      TestReplacingImageUrl("ftp://example.com/image.jpg", "http://immortal.pl/doc.html", "ftp://example.com/image.jpg");
+      TestReplacingImageUrl("A(*Sf6as7f 9A*(659A^SF 6987aSF", "http://immortal.pl/", "http://immortal.pl/A(*Sf6as7f 9A*(659A^SF 6987aSF");
+      TestReplacingImageUrl("file:///C:/Users/Administrator/image.jpg", "http://immortal.pl/index.html", "file:///C:/Users/Administrator/image.jpg");
+
+      TestReplacingImageUrl("image.png", "p//immortal.pl/", "image.png");
+      TestReplacingImageUrl("image.png", "AS&F*(^ASF", "image.png");
+
+      TestReplacingImageUrl("image.jpg", "http://immortal.pl", "http://immortal.pl/image.jpg");
+      TestReplacingImageUrl("image.jpg", "http://immortal.pl/index.html", "http://immortal.pl/image.jpg");
+      TestReplacingImageUrl("/image.jpg", "http://immortal.pl", "http://immortal.pl/image.jpg");
+      TestReplacingImageUrl("/image.jpg", "http://immortal.pl/", "http://immortal.pl/image.jpg");
+
+      TestReplacingImageUrl("static/gfx/image.gif", "http://immortal.pl", "http://immortal.pl/static/gfx/image.gif");
+      TestReplacingImageUrl("static/gfx/image.gif", "http://immortal.pl/", "http://immortal.pl/static/gfx/image.gif");
+      TestReplacingImageUrl("/static/gfx/image.gif", "http://immortal.pl", "http://immortal.pl/static/gfx/image.gif");
+      TestReplacingImageUrl("/static/gfx/image.gif", "http://immortal.pl/", "http://immortal.pl/static/gfx/image.gif");
+      
+      TestReplacingImageUrl("/static/gfx/image.gif", "http://immortal.pl/article/doc.html", "http://immortal.pl/static/gfx/image.gif");
+      
+      TestReplacingImageUrl("static/gfx/image.gif", "http://immortal.pl/article", "http://immortal.pl/static/gfx/image.gif");
+      TestReplacingImageUrl("static/gfx/image.gif", "http://immortal.pl/article/", "http://immortal.pl/article/static/gfx/image.gif");
+      
+      TestReplacingImageUrl("/static/gfx/image.gif", "http://immortal.pl/article/doc.html?someParam=1", "http://immortal.pl/static/gfx/image.gif");
+      TestReplacingImageUrl("static/gfx/image.gif", "http://immortal.pl/article/", "http://immortal.pl/article/static/gfx/image.gif");
+
+      TestReplacingImageUrl("image.png", "http://immortal.pl/article/doc.html", "http://immortal.pl/article/image.png");
+      TestReplacingImageUrl("/image.png", "http://immortal.pl/article/doc.html", "http://immortal.pl/image.png");
+      TestReplacingImageUrl("image.png", "http://immortal.pl/article/doc.html?someKey=some/Value?aksd", "http://immortal.pl/article/image.png");
+      TestReplacingImageUrl("/image.png", "http://immortal.pl/article/doc.html?someKey=some/Value?aksd", "http://immortal.pl/image.png");
+
+      // invalid base uris
+      TestReplacingImageUrl("image.png", "immortal.pl/article/doc.html?someKey=some/Value?aksd", "image.png");
+      TestReplacingImageUrl("image.png", "htt//immortal.pl/arti", "image.png");
+      TestReplacingImageUrl("image.png", "http:immortal.pl", "image.png");
+      TestReplacingImageUrl("image.png", "/immortal.pl", "image.png");
+    }
+
+    private void TestReplacingImageUrl(string srcAttribute, string url, string expectedImageUrl)
+    {
+      string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
+      string htmlContent = "<html><body>" + dummyParagraphs + "<p><img SRC=\"" + srcAttribute + "\" /></p>" + dummyParagraphs + "</body></html>";
+      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, url);
+
+      Assert.IsTrue(
+        transcodedContent.Contains("src=\"" + expectedImageUrl + "\""),
+        string.Format("Image url replacement failed. Src attribute: {0}, base url: {1}, expected image url: {2}", srcAttribute, url, expectedImageUrl));
+    }
+
     #endregion
 
     #region Private helper methods

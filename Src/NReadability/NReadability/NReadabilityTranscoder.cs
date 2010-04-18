@@ -191,9 +191,15 @@ namespace NReadability
     /// Extracts main article content from a HTML page.
     /// </summary>
     /// <param name="htmlContent">HTML markup to process.</param>
+    /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
     /// <returns>HTML markup containing extracted article content.</returns>
-    public string Transcode(string htmlContent)
+    public string Transcode(string htmlContent, string url)
     {
+      if (string.IsNullOrEmpty(htmlContent))
+      {
+        throw new ArgumentNullException("htmlContent");
+      }
+
       var document = _agilityDomBuilder.BuildDocument(htmlContent);
 
       PrepareDocument(document);
@@ -210,7 +216,7 @@ namespace NReadability
         {
           _dontStripUnlikelys = true;
 
-          return Transcode(htmlContent);
+          return Transcode(htmlContent, url);
         }
         finally
         {
@@ -220,7 +226,22 @@ namespace NReadability
 
       // TODO: implement another fallback behaviour - rerun one more time with _dontWeightClasses
 
+      if (!string.IsNullOrEmpty(url))
+      {
+        ResolveImagesUrls(document, url);
+      }
+
       return _agilityDomSerializer.SerializeDocument(document);
+    }
+
+    /// <summary>
+    /// Extracts main article content from a HTML page.
+    /// </summary>
+    /// <param name="htmlContent">HTML markup to process.</param>
+    /// <returns>HTML markup containing extracted article content.</returns>
+    public string Transcode(string htmlContent)
+    {
+      return Transcode(htmlContent, null);
     }
 
     #endregion
@@ -991,7 +1012,7 @@ namespace NReadability
 
     #region Private helper methods
 
-    private XElement GetOrCreateBody(XDocument document)
+    private static XElement GetOrCreateBody(XDocument document)
     {
       var documentBody = document.GetBody();
 
@@ -1010,6 +1031,59 @@ namespace NReadability
       }
 
       return documentBody;
+    }
+
+    private static void RemoveElements(IEnumerable<XElement> elementsToRemove)
+    {
+      elementsToRemove.ForEach(elementToRemove => elementToRemove.Remove());
+    }
+
+    private static void ResolveImagesUrls(XDocument document, string url)
+    {
+      if (document == null)
+      {
+        throw new ArgumentNullException("document");
+      }
+
+      if (string.IsNullOrEmpty(url))
+      {
+        throw new ArgumentNullException("url");
+      }
+
+      var imgElements = document.GetElementsByTagName("img");
+
+      foreach (var imgElement in imgElements)
+      {
+        var srcAttrib = imgElement.GetAttributeValue("src", null);
+
+        if (srcAttrib == null)
+        {
+          continue;
+        }
+
+        srcAttrib = ResolveImageUrl(srcAttrib, url);
+
+        imgElement.SetAttributeValue("src", srcAttrib);
+      }
+    }
+
+    private static string ResolveImageUrl(string url, string articleUrl)
+    {
+      Uri baseUri;
+
+      if (!Uri.TryCreate(articleUrl, UriKind.Absolute, out baseUri))
+      {
+        return url;
+      }
+
+      Uri absoluteUri;
+
+      if (Uri.TryCreate(baseUri, url, out absoluteUri))
+      {
+        return absoluteUri.ToString();
+      }
+
+      return url;
     }
 
     private string GetReadingStyleClass(ReadingStyle readingStyle)
@@ -1042,11 +1116,6 @@ namespace NReadability
     private void SetElementScore(XElement element, float score)
     {
       _elementsScores[element] = score;
-    }
-
-    private void RemoveElements(IEnumerable<XElement> elementsToRemove)
-    {
-      elementsToRemove.ForEach(elementToRemove => elementToRemove.Remove());
     }
 
     #endregion
