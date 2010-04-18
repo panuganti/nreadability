@@ -228,7 +228,8 @@ namespace NReadability
 
       if (!string.IsNullOrEmpty(url))
       {
-        ResolveImagesUrls(document, url);
+        ResolveElementsUrls(document, "img", "src", url);
+        ResolveElementsUrls(document, "a", "href", url);
       }
 
       return _agilityDomSerializer.SerializeDocument(document);
@@ -1038,7 +1039,7 @@ namespace NReadability
       elementsToRemove.ForEach(elementToRemove => elementToRemove.Remove());
     }
 
-    private static void ResolveImagesUrls(XDocument document, string url)
+    private static void ResolveElementsUrls(XDocument document, string tagName, string attributeName, string url)
     {
       if (document == null)
       {
@@ -1050,24 +1051,27 @@ namespace NReadability
         throw new ArgumentNullException("url");
       }
 
-      var imgElements = document.GetElementsByTagName("img");
+      var imgElements = document.GetElementsByTagName(tagName);
 
       foreach (var imgElement in imgElements)
       {
-        var srcAttrib = imgElement.GetAttributeValue("src", null);
+        var srcAttrib = imgElement.GetAttributeValue(attributeName, null);
 
         if (srcAttrib == null)
         {
           continue;
         }
 
-        srcAttrib = ResolveImageUrl(srcAttrib, url);
+        srcAttrib = ResolveElementUrl(srcAttrib, url);
 
-        imgElement.SetAttributeValue("src", srcAttrib);
+        if (!string.IsNullOrEmpty(srcAttrib))
+        {
+          imgElement.SetAttributeValue(attributeName, srcAttrib);
+        }
       }
     }
 
-    private static string ResolveImageUrl(string url, string articleUrl)
+    private static string ResolveElementUrl(string url, string articleUrl)
     {
       Uri baseUri;
 
