@@ -364,7 +364,7 @@ namespace NReadability.Tests
 
     [Test]
     [Sequential]
-    public void TestSampleInputs([Values(1, 2, 3, 4, 5, 6)]int sampleInputNumber)
+    public void TestSampleInputs([Values(1, 2, 3, 4, 5, 6, 7)]int sampleInputNumber)
     {
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
@@ -418,6 +418,12 @@ namespace NReadability.Tests
 
         case 6: // sample page; nbsp
           Assert.IsTrue(transcodedContent.Contains("1.  Item 1.")); // there's a non-breaking space here
+          break;
+
+        case 7: // http://nplusonemag.com/treasure-island
+          Assert.IsTrue(transcodedContent.Contains("stretched out storylines"));
+          Assert.IsTrue(transcodedContent.Contains("It is no longer a smart social move to brag about not owning a television."));
+          Assert.IsTrue(transcodedContent.Contains("Of course, some habits can be hard to give up completely."));
           break;
 
         default:
@@ -551,5 +557,17 @@ namespace NReadability.Tests
     }
 
     #endregion
+
+
+
+
+    // TODO: remove
+    [Test]
+    public void TempTest()
+    {
+      TestSampleInputs(7);
+
+      Assert.Fail();
+    }
   }
 }
