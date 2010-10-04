@@ -612,7 +612,7 @@ namespace NReadability
         bool append = false;
         string siblingElementName = siblingElement.Name != null ? (siblingElement.Name.LocalName ?? "") : "";
 
-        if (siblingElement == articleContentElement)
+        if (siblingElement == topCandidateElement)
         {
           // we'll append the article content element (created from the top candidate element during an earlier step)
           append = true;
