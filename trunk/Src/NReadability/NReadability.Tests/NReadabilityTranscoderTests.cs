@@ -369,7 +369,8 @@ namespace NReadability.Tests
     {
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
-      string transcodedContent = _nReadabilityTranscoder.Transcode(content);
+      bool mainContentExtracted;
+      string transcodedContent = _nReadabilityTranscoder.Transcode(content, out mainContentExtracted);
 
       const string outputDir = "SampleOutput";
 
@@ -430,6 +431,8 @@ namespace NReadability.Tests
         default:
           throw new NotSupportedException("Unknown sample input number (" + sampleInputNumber + "). Have you added another sample input? If so, then add appropriate asserts here as well.");
       }
+
+      Assert.IsTrue(mainContentExtracted);
     }
 
     [Test]
@@ -479,9 +482,22 @@ namespace NReadability.Tests
     {
       string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
       string htmlContent = "<html><body>" + dummyParagraphs + "<p><a href=\"/wiki/article1\">link</a></p>" + dummyParagraphs + "</body></html>";
-      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle");
+      bool mainContentExtracted;
+      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle", out mainContentExtracted);
 
       Assert.IsTrue(transcodedContent.Contains("href=\"http://wikipedia.org/wiki/article1\""));
+      Assert.IsTrue(mainContentExtracted);
+    }
+
+    [Test]
+    public void TestEmptyArticle()
+    {
+      const string htmlContent = "<html><body></body></html>";
+      bool mainContentExtracted;
+      
+      _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle", out mainContentExtracted);
+
+      Assert.IsFalse(mainContentExtracted);
     }
 
     #endregion
@@ -550,11 +566,14 @@ namespace NReadability.Tests
     {
       string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
       string htmlContent = "<html><body>" + dummyParagraphs + "<p><img src=\"" + srcAttribute + "\" /></p>" + dummyParagraphs + "</body></html>";
-      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, url);
+      bool mainContentExtracted;
+      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, url, out mainContentExtracted);
 
       Assert.IsTrue(
         transcodedContent.Contains("src=\"" + expectedImageUrl + "\""),
         string.Format("Image url replacement failed. Src attribute: {0}, base url: {1}, expected image url: {2}", srcAttribute, url, expectedImageUrl));
+
+      Assert.IsTrue(mainContentExtracted);
     }
 
     #endregion

@@ -41,10 +41,11 @@ namespace NReadability.Console
       string outputFile = args[1];
 
       var nReadabilityTranscoder = new NReadabilityTranscoder();
+      bool mainContentExtracted;
 
       File.WriteAllText(
         outputFile,
-        nReadabilityTranscoder.Transcode(File.ReadAllText(inputFile)));
+        nReadabilityTranscoder.Transcode(File.ReadAllText(inputFile), out mainContentExtracted));
     }
 
     #endregion

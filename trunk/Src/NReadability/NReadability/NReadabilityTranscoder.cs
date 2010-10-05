@@ -192,8 +192,9 @@ namespace NReadability
     /// </summary>
     /// <param name="htmlContent">HTML markup to process.</param>
     /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
     /// <returns>HTML markup containing extracted article content.</returns>
-    public string Transcode(string htmlContent, string url)
+    public string Transcode(string htmlContent, string url, out bool mainContentExtracted)
     {
       if (string.IsNullOrEmpty(htmlContent))
       {
@@ -216,7 +217,7 @@ namespace NReadability
         {
           _dontStripUnlikelys = true;
 
-          return Transcode(htmlContent, url);
+          return Transcode(htmlContent, url, out mainContentExtracted);
         }
         finally
         {
@@ -232,6 +233,9 @@ namespace NReadability
         ResolveElementsUrls(document, "a", "href", url);
       }
 
+      // TODO: IMM HI
+      mainContentExtracted = !articleContentElement.IsEmpty;
+
       return _agilityDomSerializer.SerializeDocument(document);
     }
 
@@ -239,10 +243,11 @@ namespace NReadability
     /// Extracts main article content from a HTML page.
     /// </summary>
     /// <param name="htmlContent">HTML markup to process.</param>
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
     /// <returns>HTML markup containing extracted article content.</returns>
-    public string Transcode(string htmlContent)
+    public string Transcode(string htmlContent, out bool mainContentExtracted)
     {
-      return Transcode(htmlContent, null);
+      return Transcode(htmlContent, null, out mainContentExtracted);
     }
 
     #endregion
