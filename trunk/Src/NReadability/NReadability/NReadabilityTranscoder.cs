@@ -455,6 +455,7 @@ namespace NReadability
 
             if (unlikelyMatchString.Length > 0
              && !"body".Equals(elementName, StringComparison.OrdinalIgnoreCase)
+             && !"a".Equals(elementName, StringComparison.OrdinalIgnoreCase)
              && _UnlikelyCandidatesRegex.IsMatch(unlikelyMatchString)
              && !_OkMaybeItsACandidateRegex.IsMatch(unlikelyMatchString))
             {
@@ -1056,22 +1057,22 @@ namespace NReadability
         throw new ArgumentNullException("url");
       }
 
-      var imgElements = document.GetElementsByTagName(tagName);
+      var elements = document.GetElementsByTagName(tagName);
 
-      foreach (var imgElement in imgElements)
+      foreach (var element in elements)
       {
-        var srcAttrib = imgElement.GetAttributeValue(attributeName, null);
+        var attributeValue = element.GetAttributeValue(attributeName, null);
 
-        if (srcAttrib == null)
+        if (attributeValue == null)
         {
           continue;
         }
 
-        srcAttrib = ResolveElementUrl(srcAttrib, url);
+        attributeValue = ResolveElementUrl(attributeValue, url);
 
-        if (!string.IsNullOrEmpty(srcAttrib))
+        if (!string.IsNullOrEmpty(attributeValue))
         {
-          imgElement.SetAttributeValue(attributeName, srcAttrib);
+          element.SetAttributeValue(attributeName, attributeValue);
         }
       }
     }
