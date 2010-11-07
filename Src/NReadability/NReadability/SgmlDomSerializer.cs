@@ -55,14 +55,34 @@ namespace NReadability
           throw new ArgumentException("The document's root must be an html element.");
         }
 
+        // add <head> element if not present
         var headElement = documentRoot.GetChildrenByTagName("head").FirstOrDefault();
 
         if (headElement == null)
         {
           headElement = new XElement("head");
-          documentRoot.Add(headElement);
+          documentRoot.AddFirst(headElement);
         }
 
+        // add <meta name="HandheldFriendly" ... /> element
+        XElement metaHandheldFriendlyElement =
+          (from metaElement in headElement.GetChildrenByTagName("meta")
+           where "HandheldFriendly".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
+           select metaElement).FirstOrDefault();
+
+        if (metaHandheldFriendlyElement != null)
+        {
+          metaHandheldFriendlyElement.Remove();
+        }
+
+        metaHandheldFriendlyElement = new XElement(
+          XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
+          new XAttribute("name", "HandheldFriendly"),
+          new XAttribute("content", "true"));
+
+        headElement.AddFirst(metaHandheldFriendlyElement);
+
+        // add <meta name="http-equiv" ... /> element
         var metaContentTypeElement =
           (from metaElement in headElement.GetChildrenByTagName("meta")
            where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""), StringComparison.OrdinalIgnoreCase)

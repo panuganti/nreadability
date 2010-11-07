@@ -485,8 +485,8 @@ namespace NReadability.Tests
       bool mainContentExtracted;
       string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle", out mainContentExtracted);
 
-      Assert.IsTrue(transcodedContent.Contains("href=\"http://wikipedia.org/wiki/article1\""));
       Assert.IsTrue(mainContentExtracted);
+      Assert.IsTrue(transcodedContent.Contains("href=\"http://wikipedia.org/wiki/article1\""));
     }
 
     [Test]
@@ -498,6 +498,18 @@ namespace NReadability.Tests
       _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle", out mainContentExtracted);
 
       Assert.IsFalse(mainContentExtracted);
+    }
+
+    [Test]
+    public void TestMobileHeaders()
+    {
+      string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
+      string htmlContent = "<html><body>" + dummyParagraphs + "</body></html>";
+      bool mainContentExtracted;
+      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle", out mainContentExtracted);
+
+      Assert.IsTrue(mainContentExtracted);
+      Assert.IsTrue(transcodedContent.Contains("<meta name=\"HandheldFriendly\" content=\"true\" />"));
     }
 
     #endregion
