@@ -512,6 +512,19 @@ namespace NReadability.Tests
       Assert.IsTrue(transcodedContent.Contains("<meta name=\"HandheldFriendly\" content=\"true\" />"));
     }
 
+    [Test]
+    public void MetaViewportElementShouldBeRemoved()
+    {
+      const string metaViewportElementStr = "<meta name=\"viewport\" content=\"width=1000\" />";
+      const string htmlContent = "<html><head>" + metaViewportElementStr + "</head><body><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p></body></html>";
+      
+      bool mainContentExtracted;
+      string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle", out mainContentExtracted);
+
+      Assert.IsTrue(mainContentExtracted);
+      Assert.IsFalse(transcodedContent.Contains(metaViewportElementStr));
+    }
+
     #endregion
 
     #region Private helper methods
