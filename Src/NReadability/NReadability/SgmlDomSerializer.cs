@@ -37,11 +37,12 @@ namespace NReadability
     /// <param name="document">System.Xml.Linq.XDocument instance containing the DOM to be serialized.</param>
     /// <param name="prettyPrint">Determines whether the output will be formatted.</param>
     /// <param name="dontIncludeMetaContentTypeElement">Determines whether DOCTYPE will be included at the beginning of the output.</param>
+    /// <param name="dontIncludeMobileSpecificElements">Determines whether mobile-specific elements (such as eg. meta HandheldFriendly) in the output.</param>
     /// <param name="dontIncludeDocType">Determines whether a meta tag with a content-type specification will be added/replaced in the output.</param>
     /// <returns>Serialized representation of the DOM.</returns>
-    public string SerializeDocument(XDocument document, bool prettyPrint, bool dontIncludeMetaContentTypeElement, bool dontIncludeDocType)
+    public string SerializeDocument(XDocument document, bool prettyPrint, bool dontIncludeMetaContentTypeElement, bool dontIncludeMobileSpecificElements, bool dontIncludeDocType)
     {
-      if (!dontIncludeMetaContentTypeElement)
+      if (!dontIncludeMetaContentTypeElement || !dontIncludeMobileSpecificElements)
       {
         var documentRoot = document.Root;
 
@@ -64,42 +65,59 @@ namespace NReadability
           documentRoot.AddFirst(headElement);
         }
 
-        // add <meta name="HandheldFriendly" ... /> element
-        XElement metaHandheldFriendlyElement =
-          (from metaElement in headElement.GetChildrenByTagName("meta")
-           where "HandheldFriendly".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
-           select metaElement).FirstOrDefault();
-
-        if (metaHandheldFriendlyElement != null)
+        if (!dontIncludeMetaContentTypeElement)
         {
-          metaHandheldFriendlyElement.Remove();
-        }
+          // add <meta name="HandheldFriendly" ... /> element
+          XElement metaHandheldFriendlyElement =
+            (from metaElement in headElement.GetChildrenByTagName("meta")
+             where "HandheldFriendly".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
+             select metaElement).FirstOrDefault();
 
-        metaHandheldFriendlyElement = new XElement(
-          XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
-          new XAttribute("name", "HandheldFriendly"),
-          new XAttribute("content", "true"));
+          if (metaHandheldFriendlyElement != null)
+          {
+            metaHandheldFriendlyElement.Remove();
+          }
 
-        headElement.AddFirst(metaHandheldFriendlyElement);
-
-        // add <meta name="http-equiv" ... /> element
-        var metaContentTypeElement =
-          (from metaElement in headElement.GetChildrenByTagName("meta")
-           where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""), StringComparison.OrdinalIgnoreCase)
-           select metaElement).FirstOrDefault();
-
-        if (metaContentTypeElement != null)
-        {
-          metaContentTypeElement.Remove();
-        }
-
-        metaContentTypeElement =
-          new XElement(
+          metaHandheldFriendlyElement = new XElement(
             XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
-            new XAttribute("http-equiv", "Content-Type"),
-            new XAttribute("content", "text/html; charset=utf-8"));
+            new XAttribute("name", "HandheldFriendly"),
+            new XAttribute("content", "true"));
 
-        headElement.AddFirst(metaContentTypeElement);
+          headElement.AddFirst(metaHandheldFriendlyElement);
+        }
+
+        if (!dontIncludeMobileSpecificElements)
+        {
+          // add <meta name="http-equiv" ... /> element
+          var metaContentTypeElement =
+            (from metaElement in headElement.GetChildrenByTagName("meta")
+             where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""), StringComparison.OrdinalIgnoreCase)
+             select metaElement).FirstOrDefault();
+
+          if (metaContentTypeElement != null)
+          {
+            metaContentTypeElement.Remove();
+          }
+
+          metaContentTypeElement =
+            new XElement(
+              XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
+              new XAttribute("http-equiv", "Content-Type"),
+              new XAttribute("content", "text/html; charset=utf-8"));
+
+          headElement.AddFirst(metaContentTypeElement);
+
+          // remove meta viewport element if present
+          var metaViewportElement =
+            (from metaElement in headElement.GetChildrenByTagName("meta")
+             where "viewport".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
+             select metaElement).FirstOrDefault();
+
+          if (metaViewportElement != null)
+          {
+            metaViewportElement.Remove();
+          }
+        }
       }
 
       string result = document.ToString(prettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
@@ -119,7 +137,7 @@ namespace NReadability
     /// <returns>Serialized representation of the DOM.</returns>
     public string SerializeDocument(XDocument document)
     {
-      return SerializeDocument(document, false, false, false);
+      return SerializeDocument(document, false, false, false, false);
     }
 
     #endregion
