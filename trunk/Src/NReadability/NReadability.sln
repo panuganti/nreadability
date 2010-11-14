@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NReadability", "NReadability\NReadability.csproj", "{0CCC740D-2907-437B-B5FF-F473DFA02382}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NReadability.Tests", "NReadability.Tests\NReadability.Tests.csproj", "{78EC35EB-C37A-4A7F-A87B-6F65335A8177}"

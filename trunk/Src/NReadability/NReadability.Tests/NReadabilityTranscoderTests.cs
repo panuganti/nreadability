@@ -365,7 +365,7 @@ namespace NReadability.Tests
     [Test]
     [Sequential]
     // TODO: if time, add test case 7 (the sample is already in the repo but needs fixing)
-    public void TestSampleInputs([Values(1, 2, 3, 4, 5, 6)]int sampleInputNumber)
+    public void TestSampleInputs([Values(1, 2, 3, 4, 5, 6, 8)]int sampleInputNumber)
     {
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
@@ -426,6 +426,12 @@ namespace NReadability.Tests
           Assert.IsTrue(transcodedContent.Contains("stretched out storylines"));
           Assert.IsTrue(transcodedContent.Contains("It is no longer a smart social move to brag about not owning a television."));
           Assert.IsTrue(transcodedContent.Contains("Of course, some habits can be hard to give up completely."));
+          break;
+
+        case 8:  // NYTimes leading paragraph
+          Assert.IsTrue(transcodedContent.Contains("freed from house arrest on Saturday, setting her on the path"));
+          Assert.IsTrue(transcodedContent.Contains("confrontation with the generals who had kept her out of the public eye"));
+          Assert.IsTrue(transcodedContent.Contains("Western capitals was one of celebration"));
           break;
 
         default:
