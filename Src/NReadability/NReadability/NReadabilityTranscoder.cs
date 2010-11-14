@@ -611,19 +611,29 @@ namespace NReadability
         Math.Max(
           _MaxSiblingScoreTreshold,
           _SiblingScoreTresholdCoefficient * topCandidateElementScore);
+      
+      string topCandidateClass = topCandidateElement.GetClass();
 
       // iterate through the sibling elements and decide whether append them
       foreach (var siblingElement in siblingElements)
       {
         bool append = false;
         string siblingElementName = siblingElement.Name != null ? (siblingElement.Name.LocalName ?? "") : "";
+         
+        float contentBonus = 0;
+
+        // Give a bonus if sibling nodes and top canidates have the same class name
+        if (!string.IsNullOrEmpty(topCandidateClass) && siblingElement.GetClass() == topCandidateClass)
+        {
+          contentBonus += topCandidateElementScore * _SiblingScoreTresholdCoefficient;
+        }
 
         if (siblingElement == topCandidateElement)
         {
           // we'll append the article content element (created from the top candidate element during an earlier step)
           append = true;
         }
-        else if (GetElementScore(siblingElement) >= siblingScoreThreshold)
+        else if ((GetElementScore(siblingElement) + contentBonus) >= siblingScoreThreshold)
         {
           // we'll append this element if the calculated score is higher than a treshold (derived from the score of the top candidate element)
           append = true;
