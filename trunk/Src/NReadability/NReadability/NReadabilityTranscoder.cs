@@ -249,7 +249,7 @@ namespace NReadability
     /// <returns>HTML markup containing extracted article content.</returns>
     public string Transcode(string htmlContent, string url, out bool mainContentExtracted)
     {
-      return Transcode(htmlContent, url, DomSerializationParams.Default, out mainContentExtracted);
+      return Transcode(htmlContent, url, DomSerializationParams.CreateDefault(), out mainContentExtracted);
     }
 
     /// <summary>
