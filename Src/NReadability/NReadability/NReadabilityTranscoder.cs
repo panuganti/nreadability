@@ -192,9 +192,10 @@ namespace NReadability
     /// </summary>
     /// <param name="htmlContent">HTML markup to process.</param>
     /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
+    /// <param name="domSerializationParams">Contains parameters that modify the behaviour of the output serialization.</param>
     /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
     /// <returns>HTML markup containing extracted article content.</returns>
-    public string Transcode(string htmlContent, string url, out bool mainContentExtracted)
+    public string Transcode(string htmlContent, string url, DomSerializationParams domSerializationParams, out bool mainContentExtracted)
     {
       if (string.IsNullOrEmpty(htmlContent))
       {
@@ -217,7 +218,7 @@ namespace NReadability
         {
           _dontStripUnlikelys = true;
 
-          return Transcode(htmlContent, url, out mainContentExtracted);
+          return Transcode(htmlContent, url, domSerializationParams, out mainContentExtracted);
         }
         finally
         {
@@ -236,7 +237,19 @@ namespace NReadability
       // TODO: IMM HI
       mainContentExtracted = !articleContentElement.IsEmpty;
 
-      return _agilityDomSerializer.SerializeDocument(document);
+      return _agilityDomSerializer.SerializeDocument(document, domSerializationParams);
+    }
+
+    /// <summary>
+    /// Extracts main article content from a HTML page.
+    /// </summary>
+    /// <param name="htmlContent">HTML markup to process.</param>
+    /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
+    /// <returns>HTML markup containing extracted article content.</returns>
+    public string Transcode(string htmlContent, string url, out bool mainContentExtracted)
+    {
+      return Transcode(htmlContent, url, DomSerializationParams.Default, out mainContentExtracted);
     }
 
     /// <summary>
