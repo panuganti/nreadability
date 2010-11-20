@@ -134,7 +134,7 @@ namespace NReadability
     /// <returns>Serialized representation of the DOM.</returns>
     public string SerializeDocument(XDocument document)
     {
-      return SerializeDocument(document, DomSerializationParams.Default);
+      return SerializeDocument(document, DomSerializationParams.CreateDefault());
     }
 
     #endregion

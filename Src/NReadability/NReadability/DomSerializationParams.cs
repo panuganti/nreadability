@@ -2,7 +2,17 @@
 {
   public class DomSerializationParams
   {
-    public static readonly DomSerializationParams Default = new DomSerializationParams();
+    #region Factory methods
+
+    /// <summary>
+    /// Creates an instance of DomSerializationParams with parameters set to their defaults.
+    /// </summary>
+    public static DomSerializationParams CreateDefault()
+    {
+      return new DomSerializationParams();
+    }
+
+    #endregion
 
     #region Properties
 
