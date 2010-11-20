@@ -64,6 +64,28 @@ namespace NReadability
 
         if (!domSerializationParams.DontIncludeMetaContentTypeElement)
         {
+          // add <meta name="http-equiv" ... /> element
+          XElement metaContentTypeElement =
+            (from metaElement in headElement.GetChildrenByTagName("meta")
+             where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""), StringComparison.OrdinalIgnoreCase)
+             select metaElement).FirstOrDefault();
+
+          if (metaContentTypeElement != null)
+          {
+            metaContentTypeElement.Remove();
+          }
+
+          metaContentTypeElement =
+            new XElement(
+              XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
+              new XAttribute("http-equiv", "Content-Type"),
+              new XAttribute("content", "text/html; charset=utf-8"));
+
+          headElement.AddFirst(metaContentTypeElement);
+        }
+
+        if (!domSerializationParams.DontIncludeMobileSpecificElements)
+        {
           // add <meta name="HandheldFriendly" ... /> element
           XElement metaHandheldFriendlyElement =
             (from metaElement in headElement.GetChildrenByTagName("meta")
@@ -81,31 +103,9 @@ namespace NReadability
             new XAttribute("content", "true"));
 
           headElement.AddFirst(metaHandheldFriendlyElement);
-        }
-
-        if (!domSerializationParams.DontIncludeMobileSpecificElements)
-        {
-          // add <meta name="http-equiv" ... /> element
-          var metaContentTypeElement =
-            (from metaElement in headElement.GetChildrenByTagName("meta")
-             where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""), StringComparison.OrdinalIgnoreCase)
-             select metaElement).FirstOrDefault();
-
-          if (metaContentTypeElement != null)
-          {
-            metaContentTypeElement.Remove();
-          }
-
-          metaContentTypeElement =
-            new XElement(
-              XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
-              new XAttribute("http-equiv", "Content-Type"),
-              new XAttribute("content", "text/html; charset=utf-8"));
-
-          headElement.AddFirst(metaContentTypeElement);
 
           // remove meta viewport element if present
-          var metaViewportElement =
+          XElement metaViewportElement =
             (from metaElement in headElement.GetChildrenByTagName("meta")
              where "viewport".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
              select metaElement).FirstOrDefault();
