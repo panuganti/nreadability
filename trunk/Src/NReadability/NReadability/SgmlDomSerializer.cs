@@ -35,14 +35,11 @@ namespace NReadability
     /// Serializes given DOM (System.Xml.Linq.XDocument object) to a string.
     /// </summary>
     /// <param name="document">System.Xml.Linq.XDocument instance containing the DOM to be serialized.</param>
-    /// <param name="prettyPrint">Determines whether the output will be formatted.</param>
-    /// <param name="dontIncludeMetaContentTypeElement">Determines whether DOCTYPE will be included at the beginning of the output.</param>
-    /// <param name="dontIncludeMobileSpecificElements">Determines whether mobile-specific elements (such as eg. meta HandheldFriendly) in the output.</param>
-    /// <param name="dontIncludeDocType">Determines whether a meta tag with a content-type specification will be added/replaced in the output.</param>
+    /// <param name="domSerializationParams">Contains parameters that modify the behaviour of the output serialization.</param>
     /// <returns>Serialized representation of the DOM.</returns>
-    public string SerializeDocument(XDocument document, bool prettyPrint, bool dontIncludeMetaContentTypeElement, bool dontIncludeMobileSpecificElements, bool dontIncludeDocType)
+    public string SerializeDocument(XDocument document, DomSerializationParams domSerializationParams)
     {
-      if (!dontIncludeMetaContentTypeElement || !dontIncludeMobileSpecificElements)
+      if (!domSerializationParams.DontIncludeMetaContentTypeElement || !domSerializationParams.DontIncludeMobileSpecificElements)
       {
         var documentRoot = document.Root;
 
@@ -65,7 +62,7 @@ namespace NReadability
           documentRoot.AddFirst(headElement);
         }
 
-        if (!dontIncludeMetaContentTypeElement)
+        if (!domSerializationParams.DontIncludeMetaContentTypeElement)
         {
           // add <meta name="HandheldFriendly" ... /> element
           XElement metaHandheldFriendlyElement =
@@ -86,7 +83,7 @@ namespace NReadability
           headElement.AddFirst(metaHandheldFriendlyElement);
         }
 
-        if (!dontIncludeMobileSpecificElements)
+        if (!domSerializationParams.DontIncludeMobileSpecificElements)
         {
           // add <meta name="http-equiv" ... /> element
           var metaContentTypeElement =
@@ -120,9 +117,9 @@ namespace NReadability
         }
       }
 
-      string result = document.ToString(prettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
+      string result = document.ToString(domSerializationParams.PrettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
 
-      if (!dontIncludeDocType)
+      if (!domSerializationParams.DontIncludeDocType)
       {
         result = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\r\n\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n" + result;
       }
@@ -137,7 +134,7 @@ namespace NReadability
     /// <returns>Serialized representation of the DOM.</returns>
     public string SerializeDocument(XDocument document)
     {
-      return SerializeDocument(document, false, false, false, false);
+      return SerializeDocument(document, DomSerializationParams.Default);
     }
 
     #endregion

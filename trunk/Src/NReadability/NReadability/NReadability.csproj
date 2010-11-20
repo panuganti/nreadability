@@ -68,6 +68,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DomSerializationParams.cs" />
     <Compile Include="SgmlDomBuilder.cs" />
     <Compile Include="ChildNodesTraverser.cs" />
     <Compile Include="SgmlDomSerializer.cs" />
