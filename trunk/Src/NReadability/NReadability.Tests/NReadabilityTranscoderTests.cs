@@ -496,6 +496,23 @@ namespace NReadability.Tests
     }
 
     [Test]
+    public void TestReplacingQueryStringLinkUrls()
+    {
+        string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
+        string htmlContent = "<html><body>" + dummyParagraphs + "<p><a href=\"?hello\">link</a></p>" + dummyParagraphs + "</body></html>";
+        bool mainContentExtracted;
+        string transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle", out mainContentExtracted);
+
+        Assert.IsTrue(mainContentExtracted);
+        Assert.IsTrue(transcodedContent.Contains("href=\"http://wikipedia.org/wiki/baseArticle?hello\""));
+
+        transcodedContent = _nReadabilityTranscoder.Transcode(htmlContent, "http://wikipedia.org/wiki/baseArticle?goodbye", out mainContentExtracted);
+        Assert.IsTrue(mainContentExtracted);
+        Assert.IsTrue(transcodedContent.Contains("href=\"http://wikipedia.org/wiki/baseArticle?hello\""));
+    }
+   
+
+    [Test]
     public void TestEmptyArticle()
     {
       const string htmlContent = "<html><body></body></html>";
