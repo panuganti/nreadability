@@ -35,6 +35,20 @@ namespace NReadability
   /// </summary>
   public class NReadabilityTranscoder
   {
+    #region Data structures
+    
+    /// <summary>
+    /// Used in FindNextPageLink
+    /// </summary>
+    private class LinkData
+    {
+        public float Score;
+        public string LinkText;
+        public string LinkHref;
+    }
+
+    #endregion
+      
     #region Fields
 
     #region Resources constants
@@ -92,10 +106,11 @@ namespace NReadability
 
     #region Algorithm regular expressions
 
-    private static readonly Regex _UnlikelyCandidatesRegex = new Regex("combx|comment|disqus|foot|header|menu|meta|rss|shoutbox|sidebar|sponsor", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _OkMaybeItsACandidateRegex = new Regex("and|article|body|column|main", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _PositiveWeightRegex = new Regex("article|body|content|entry|hentry|page|pagination|post|text", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _NegativeWeightRegex = new Regex("combx|comment|contact|foot|footer|footnote|link|media|meta|promo|related|scroll|shoutbox|sponsor|tags|widget", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _UnlikelyCandidatesRegex = new Regex("combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _OkMaybeItsACandidateRegex = new Regex("and|article|body|column|main|shadow", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _PositiveWeightRegex = new Regex("article|body|content|entry|hentry|main|page|pagination|post|text|blog|story", RegexOptions.Compiled | RegexOptions.IgnoreCase);    
+    private static readonly Regex _NegativeWeightRegex = new Regex("combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _Extraneous = new Regex("print|archive|comment|discuss|e[-]?mail|share|reply|all|login|sign|single|also", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex _DivToPElementsRegex = new Regex("<(a|blockquote|dl|div|img|ol|p|pre|table|ul)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex _EndOfSentenceRegex = new Regex("\\.( |$)", RegexOptions.Compiled | RegexOptions.Multiline);
     private static readonly Regex _BreakBeforeParagraphRegex = new Regex("<br[^>]*>\\s*<p", RegexOptions.Compiled);
@@ -108,7 +123,9 @@ namespace NReadability
     private static readonly Regex _ArticleTitleDashRegex2 = new Regex("(.*)[\\|\\-] .*", RegexOptions.Compiled);
     private static readonly Regex _ArticleTitleDashRegex3 = new Regex("[^\\|\\-]*[\\|\\-](.*)", RegexOptions.Compiled);
     private static readonly Regex _ArticleTitleColonRegex1 = new Regex(".*:(.*)", RegexOptions.Compiled);
-    private static readonly Regex _ArticleTitleColonRegex2 = new Regex("[^:]*[:](.*)", RegexOptions.Compiled);
+    private static readonly Regex _ArticleTitleColonRegex2 = new Regex("[^:]*[:](.*)", RegexOptions.Compiled);    
+    private static readonly Regex _NextLink = new Regex(@"(next|weiter|continue|>([^\|]|$)|�([^\|]|$))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _PrevLink = new Regex("(prev|earl|old|new|<|�)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     #endregion
 
@@ -120,15 +137,14 @@ namespace NReadability
     private readonly ReadingStyle _readingStyle;
     private readonly ReadingSize _readingSize;
     private readonly ReadingMargin _readingMargin;
-
+    
     #endregion
 
     #region Helper instance fields
-
     private readonly SgmlDomBuilder _agilityDomBuilder;
     private readonly SgmlDomSerializer _agilityDomSerializer;
     private readonly Dictionary<XElement, float> _elementsScores;
-
+        
     #endregion
 
     #endregion
@@ -161,7 +177,7 @@ namespace NReadability
 
       _agilityDomBuilder = new SgmlDomBuilder();
       _agilityDomSerializer = new SgmlDomSerializer();
-      _elementsScores = new Dictionary<XElement, float>();
+      _elementsScores = new Dictionary<XElement, float>();      
     }
 
     /// <summary>
@@ -194,8 +210,66 @@ namespace NReadability
     /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
     /// <param name="domSerializationParams">Contains parameters that modify the behaviour of the output serialization.</param>
     /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
+    /// <param name="nextPageUrl">If the content contains a link to a subsequent page, it is returned here.</param>
     /// <returns>HTML markup containing extracted article content.</returns>
-    public string Transcode(string htmlContent, string url, DomSerializationParams domSerializationParams, out bool mainContentExtracted)
+    public string Transcode(string htmlContent, string url, DomSerializationParams domSerializationParams, out bool mainContentExtracted, out string nextPageUrl)
+    {
+      var document = TranscodeToXml(htmlContent, url, out mainContentExtracted, out nextPageUrl);
+
+      return _agilityDomSerializer.SerializeDocument(document, domSerializationParams);
+    }
+
+    /// <summary>
+    /// Extracts main article content from a HTML page.
+    /// </summary>
+    /// <param name="htmlContent">HTML markup to process.</param>
+    /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
+    /// <param name="nextPageUrl">If the content contains a link to a subsequent page, it is returned here.</param>
+    /// <returns>HTML markup containing extracted article content.</returns>
+    public string Transcode(string htmlContent, string url, out bool mainContentExtracted, out string nextPageUrl)
+    {
+      return Transcode(htmlContent, url, DomSerializationParams.CreateDefault(), out mainContentExtracted, out nextPageUrl);
+    }
+
+    /// <summary>
+    /// Extracts main article content from a HTML page.
+    /// </summary>
+    /// <param name="htmlContent">HTML markup to process.</param>
+    /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>    
+    /// <returns>HTML markup containing extracted article content.</returns>
+    public string Transcode(string htmlContent, string url, out bool mainContentExtracted)
+    {
+      string nextPageUrl;
+      return Transcode(htmlContent, url, DomSerializationParams.CreateDefault(), out mainContentExtracted, out nextPageUrl);
+    }
+
+    /// <summary>
+    /// Extracts main article content from a HTML page.
+    /// </summary>
+    /// <param name="htmlContent">HTML markup to process.</param>
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>    
+    /// <returns>HTML markup containing extracted article content.</returns>
+    public string Transcode(string htmlContent, out bool mainContentExtracted)
+    {
+      string nextPageUrl;
+      return Transcode(htmlContent, null, out mainContentExtracted, out nextPageUrl);
+    }
+
+    #endregion
+
+    #region Readability algorithm
+
+    /// <summary>
+    /// Extracts main article content from a HTML page.
+    /// </summary>
+    /// <param name="htmlContent">HTML markup to process.</param>
+    /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
+    /// <param name="nextPageUrl">If the content contains a link to a subsequent page, it is returned here.</param>
+    /// <returns>An XDocument containing extracted article content.</returns>
+    internal XDocument TranscodeToXml(string htmlContent, string url, out bool mainContentExtracted, out string nextPageUrl)
     {
       if (string.IsNullOrEmpty(htmlContent))
       {
@@ -205,6 +279,18 @@ namespace NReadability
       var document = _agilityDomBuilder.BuildDocument(htmlContent);
 
       PrepareDocument(document);
+
+      if (!string.IsNullOrEmpty(url))
+      {
+        ResolveElementsUrls(document, "img", "src", url);
+        ResolveElementsUrls(document, "a", "href", url);
+      }
+
+      nextPageUrl = null;
+      if (url != null)
+      {
+        nextPageUrl = FindNextPageLink(document.GetBody(), url);
+      }
 
       var articleTitleElement = ExtractArticleTitle(document);
       var articleContentElement = ExtractArticleContent(document);
@@ -218,8 +304,8 @@ namespace NReadability
         {
           _dontStripUnlikelys = true;
 
-          return Transcode(htmlContent, url, domSerializationParams, out mainContentExtracted);
-        }
+          return TranscodeToXml(htmlContent, url, out mainContentExtracted, out nextPageUrl);
+        } 
         finally
         {
           _dontStripUnlikelys = false;
@@ -228,44 +314,251 @@ namespace NReadability
 
       // TODO: implement another fallback behaviour - rerun one more time with _dontWeightClasses
 
-      if (!string.IsNullOrEmpty(url))
-      {
-        ResolveElementsUrls(document, "img", "src", url);
-        ResolveElementsUrls(document, "a", "href", url);
-      }
 
       // TODO: IMM HI
       mainContentExtracted = !articleContentElement.IsEmpty;
 
-      return _agilityDomSerializer.SerializeDocument(document, domSerializationParams);
+      return document;
     }
 
     /// <summary>
-    /// Extracts main article content from a HTML page.
+    /// Looks for any paging links that may occur within the document
     /// </summary>
-    /// <param name="htmlContent">HTML markup to process.</param>
-    /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
-    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
-    /// <returns>HTML markup containing extracted article content.</returns>
-    public string Transcode(string htmlContent, string url, out bool mainContentExtracted)
+    /// <param name="body">Content body</param>
+    /// <param name="url">Url of document</param>
+    internal string FindNextPageLink(XElement body, string url)
     {
-      return Transcode(htmlContent, url, DomSerializationParams.CreateDefault(), out mainContentExtracted);
+      var possiblePages = new Dictionary<string, LinkData>();
+      var allLinks = body.GetElementsByTagName("a");
+      var articleBaseUrl = FindBaseUrl(url);
+
+      /* Loop through all links, looking for hints that they may be next-page links. 
+       * Things like having "page" in their textContent, className or id, or being a child
+       * of a node with a page-y className or id. 
+       * After we do that, assign each page a score.
+       */
+      foreach (var link in allLinks)
+      {
+        string linkHref = (string)link.Attribute("href");
+
+        if (String.IsNullOrEmpty(linkHref))
+          continue;
+
+        linkHref = Regex.Replace(linkHref, "#.*$", "");
+        linkHref = Regex.Replace(linkHref, "/$", "");
+
+        /* If we've already seen this page, then ignore it. */
+        // This leaves out an already-checked page check, because 
+        // the web transcoder is seperate from the original transcoder
+        if (linkHref == "" || linkHref == articleBaseUrl || linkHref == url)
+          continue;
+
+        /* If it's on a different domain, skip it. */
+        Uri linkHrefUri;
+        if (Uri.TryCreate(linkHref, UriKind.Absolute, out linkHrefUri) && linkHrefUri.Host != new Uri(articleBaseUrl).Host)
+          continue;
+
+        string linkText = GetInnerText(link);
+
+        /* If the linktext looks like it's not the next page, then skip it */
+        if (_Extraneous.IsMatch(linkText) || linkText.Length > 25)
+          continue;
+
+        /* If the leftovers of the URL after removing the base URL don't contain any digits, it's certainly not a next page link. */
+        string linkHrefLeftover = linkHref.Replace(articleBaseUrl, "");
+        if (!Regex.IsMatch(linkHrefLeftover, @"\d"))
+          continue;
+
+        if (!possiblePages.Keys.Contains(linkHref))
+        {
+          possiblePages[linkHref] = new LinkData { Score = 0, LinkHref = linkHref, LinkText = linkText };
+        } 
+        else
+        {
+          possiblePages[linkHref].LinkText += " | " + linkText;
+        }
+
+        var linkObj = possiblePages[linkHref];
+
+        /*
+         * If the articleBaseUrl isn't part of this URL, penalize this link. It could still be the link, but the odds are lower.
+         * Example: http://www.actionscript.org/resources/articles/745/1/JavaScript-and-VBScript-Injection-in-ActionScript-3/Page1.html
+         */
+        if (linkHref.IndexOf(articleBaseUrl) == -1)
+          linkObj.Score -= 25;
+
+        string linkData = linkText + " " + link.GetClass() + " " + link.GetId();
+
+        if (_NextLink.IsMatch(linkData))
+          linkObj.Score += 50;
+
+        if (Regex.IsMatch(linkData, "pag(e|ing|inat)", RegexOptions.IgnoreCase))
+          linkObj.Score += 25;
+
+        /* If we already matched on "next", last is probably fine. If we didn't, then it's bad. Penalize. */
+        /* -65 is enough to negate any bonuses gotten from a > or � in the text */
+        if (Regex.IsMatch(linkData, "(first|last)", RegexOptions.IgnoreCase))
+          if (!_NextLink.IsMatch(linkObj.LinkText))
+            linkObj.Score -= 65;
+
+        if (_NegativeWeightRegex.IsMatch(linkData) || _Extraneous.IsMatch(linkData))
+          linkObj.Score -= 50;
+
+        if (_PrevLink.IsMatch(linkData))
+          linkObj.Score -= 200;
+
+        /* If any ancestor node contains page or paging or paginat */
+        var parentNode = link.Parent;
+        bool positiveNodeMatch = false;
+        bool negativeNodeMatch = false;
+
+        while (parentNode != null)
+        {
+          string parentNodeClassAndId = parentNode.GetClass() + " " + parentNode.GetId();
+          if (!positiveNodeMatch && Regex.IsMatch(parentNodeClassAndId, "pag(e|ing|inat)", RegexOptions.IgnoreCase))
+          {
+            positiveNodeMatch = true;
+            linkObj.Score += 25;
+          }
+          if (!negativeNodeMatch && _NegativeWeightRegex.IsMatch(parentNodeClassAndId))
+          {
+            if (!_PositiveWeightRegex.IsMatch(parentNodeClassAndId))
+            {
+              linkObj.Score -= 25;
+              negativeNodeMatch = true;
+            }
+          }
+
+          parentNode = parentNode.Parent;
+        }
+
+        /*
+        * If the URL looks like it has paging in it, add to the score.
+        * Things like /page/2/, /pagenum/2, ?p=3, ?page=11, ?pagination=34
+        */
+        if (Regex.IsMatch(linkHref, @"p(a|g|ag)?(e|ing|ination)?(=|\/)[0-9]{1,2}", RegexOptions.IgnoreCase) || 
+            Regex.IsMatch(linkHref, @"(page|paging)", RegexOptions.IgnoreCase))
+        {
+          linkObj.Score += 25;
+        }
+
+        /* If the URL contains negative values, give a slight decrease. */
+        if (_Extraneous.IsMatch(linkHref))
+        {
+          linkObj.Score -= 15;
+        }
+
+        /*
+         * If the link text can be parsed as a number, give it a minor bonus, with a slight
+         * bias towards lower numbered pages. This is so that pages that might not have 'next'
+         * in their text can still get scored, and sorted properly by score.
+         */
+        int linkTextAsNumber;
+        bool isInt = int.TryParse(linkText, out linkTextAsNumber);
+        if (isInt)
+        {
+          /* Punish 1 since we're either already there, or it's probably before what we want anyways. */
+          if (linkTextAsNumber == 1)
+            linkObj.Score -= 10;
+          else
+            linkObj.Score += Math.Max(0, 10 - linkTextAsNumber);
+        }
+      }
+
+      /*
+      * Loop thrugh all of our possible pages from above and find our top candidate for the next page URL.
+      * Require at least a score of 50, which is a relatively high confidence that this page is the next link.
+      */
+      LinkData topPage = null;
+      foreach (var page in possiblePages.Keys)
+      {
+        if (possiblePages[page].Score >= 50 && (topPage == null || topPage.Score < possiblePages[page].Score))
+          topPage = possiblePages[page];
+      }
+
+      if (topPage != null)
+      {
+        string nextHref = Regex.Replace(topPage.LinkHref, @"\/$", "");        
+        var nextHrefUri = new Uri(new Uri(articleBaseUrl), nextHref);
+        return nextHrefUri.ToString();
+      } 
+      else
+    {
+        return null;
+      }
     }
 
+    
     /// <summary>
-    /// Extracts main article content from a HTML page.
-    /// </summary>
-    /// <param name="htmlContent">HTML markup to process.</param>
-    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
-    /// <returns>HTML markup containing extracted article content.</returns>
-    public string Transcode(string htmlContent, out bool mainContentExtracted)
+    /// Find a cleaned up version of the current URL, to use for comparing links for possible next-pageyness.
+    /// </summary>    
+    internal string FindBaseUrl(string url)
     {
-      return Transcode(htmlContent, null, out mainContentExtracted);
+      Uri urlUri;
+      if (!Uri.TryCreate(url, UriKind.Absolute, out urlUri))
+      {
+        return url;
+    }
+        
+      string protocol = urlUri.Scheme;
+      string hostname = urlUri.Host;        
+      string noUrlParams = urlUri.AbsolutePath + "/";
+      var urlSlashes = noUrlParams.Split('/').Reverse().ToList();
+      var cleanedSegments = new List<string>();
+      string possibleType = "";
+
+      int slashLen = urlSlashes.Count();
+      for (int i = 0;  i < slashLen; i++)
+      {
+        string segment = urlSlashes[i];
+
+        /* Split off and save anything that looks like a file type. */
+        if (segment.IndexOf('.') != -1)
+        {
+          possibleType = segment.Split('.')[1];
+
+          /* If the type isn't alpha-only, it's probably not actually a file extension. */
+          if (!Regex.IsMatch(segment, "[^a-zA-Z]"))
+            segment = segment.Split('.')[0];
+        }
+
+        /*
+         * EW-CMS specific segment replacement. Ugly.
+         * Example: http://www.ew.com/ew/article/0,,20313460_20369436,00.html
+        */
+        if (segment.IndexOf(",00") != -1) 
+          segment = segment.Replace(",00", "");
+            
+        /* If our first or second segment has anything looking like a page number, remove it. */
+        var pageNumRegex = new Regex("((_|-)?p[a-z]*|(_|-))[0-9]{1,2}$", RegexOptions.IgnoreCase);
+        if (pageNumRegex.IsMatch(segment) && ((i == 1) || (i == 0))) 
+          segment = pageNumRegex.Replace(segment, "");
+          
+        bool del = false;
+
+        /* If this is purely a number, and it's the first or second segment, it's probably a page number. Remove it. */
+        if (i < 2 && Regex.IsMatch(segment, @"^[\d]{1,2}$"))
+          del = true;
+            
+        /* If this is the first segment and it's just "index," remove it. */
+        if (i == 0 && segment.ToLower() == "index")
+          del = true;
+
+        /* If tour first or second segment is smaller than 3 characters, and the first segment was purely alphas, remove it. */
+        // TODO: Check these "purely alpha" regexes.  They don't seem right.
+        if (i < 2 && segment.Length < 3 && !Regex.IsMatch(urlSlashes[0], "[a-z]", RegexOptions.IgnoreCase))
+          del = true;
+
+        /* If it's not marked for deletion, push it to cleanedSegments */
+        if (!del)
+          cleanedSegments.Add(segment);
+      }
+
+      /* This is our final, cleaned, base article URL. */
+      cleanedSegments.Reverse();
+      return protocol + "://" + hostname + String.Join("/", cleanedSegments.ToArray());
     }
 
-    #endregion
-
-    #region Readability algorithm
 
     internal void PrepareDocument(XDocument document)
     {
@@ -1102,11 +1395,17 @@ namespace NReadability
 
     private static string ResolveElementUrl(string url, string articleUrl)
     {
-      Uri baseUri;
+      Uri baseUri;      
 
       if (!Uri.TryCreate(articleUrl, UriKind.Absolute, out baseUri))
       {
         return url;
+      }
+
+      /* If the link is simply a query string, then simply attach it to the original URL */
+      if (url.StartsWith("?"))
+      {        
+        return baseUri.Scheme + "://" + baseUri.Host + baseUri.AbsolutePath + url;       
       }
 
       Uri absoluteUri;

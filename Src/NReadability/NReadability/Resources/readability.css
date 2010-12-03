@@ -6,6 +6,8 @@
 #readInner a:hover {text-decoration:underline;}
 #readInner img {float:left;clear:both;margin: 0 12px 12px 0;}
 #readInner h1 {display:block;width:100%;border-bottom:1px solid #333;font-size:1.2em;padding-bottom:.5em;margin-top:0;margin-bottom:.75em;}
+#readInner sup{line-height:.8em;}
+#readInner .page-separator{clear:both;display:block;font-size:.85em;filter:alpha(opacity=20);opacity:.20;text-align:center;}
 .style-apertura #readInner h1 {border-bottom-color:#ededed;}
 #readInner blockquote {margin-left:3em;margin-right:3em;}
 #readability-inner * {margin-bottom:16px;border:none;background:none;}
