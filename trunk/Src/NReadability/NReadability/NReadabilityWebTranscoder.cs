@@ -18,7 +18,6 @@
  * limitations under the License.
  */
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -31,13 +30,17 @@ namespace NReadability
   /// </summary>
   public class NReadabilityWebTranscoder
   {
-    private NReadabilityTranscoder _transcoder;
-    private IUrlFetcher _fetcher;
-    private SgmlDomSerializer _agilityDomSerializer;
+    private const int _MaxPages = 30;
+    private const string _PageIdPrefix = "readability-page-";
+
+    private readonly NReadabilityTranscoder _transcoder;
+    private readonly IUrlFetcher _urlFetcher;
+    private readonly SgmlDomSerializer _sgmlDomSerializer;
+    
     private List<string> _parsedPages;
     private int _curPageNum;
-    private const int _MaxPages = 30;
 
+    #region Constructor(s)
 
     /// <summary>
     ///  Initializes a new instance of NReadabilityWebTranscoder.
@@ -45,14 +48,13 @@ namespace NReadability
     ///  and a custom IUrlFetcher.  This overload is mostly used for testing.
     /// </summary>
     /// <param name="transcoder">A NReadabilityTranscoder.</param>
-    /// <param name="fetcher">IFetcher instance to download content.</param>
-    public NReadabilityWebTranscoder(NReadabilityTranscoder transcoder, IUrlFetcher fetcher)
+    /// <param name="urlFetcher">IFetcher instance to download content.</param>
+    public NReadabilityWebTranscoder(NReadabilityTranscoder transcoder, IUrlFetcher urlFetcher)
     {
       _transcoder = transcoder;
-      _fetcher = fetcher;
-      _agilityDomSerializer = new SgmlDomSerializer();      
+      _urlFetcher = urlFetcher;
+      _sgmlDomSerializer = new SgmlDomSerializer();      
     }
-
 
     /// <summary>
     /// Initializes a new instance of NReadabilityWebTranscoder.
@@ -71,14 +73,19 @@ namespace NReadability
       : this(new NReadabilityTranscoder(), new UrlFetcher())
     {
     }
-    
+
+    #endregion
+
+    #region Public methods
+
     /// <summary>
     /// Extracts main article content from a HTML web page.
     /// </summary>    
-    /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>    
+    /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
+    /// <param name="domSerializationParams">Contains parameters that modify the behaviour of the output serialization.</param>
     /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>    
     /// <returns>HTML markup containing extracted article content.</returns>
-    public string Transcode(string url, out bool mainContentExtracted)
+    public string Transcode(string url, DomSerializationParams domSerializationParams, out bool mainContentExtracted)
     {
       _curPageNum = 1;
       _parsedPages = new List<string>();
@@ -86,10 +93,10 @@ namespace NReadability
       /* Make sure this document is added to the list of parsed pages first, so we don't double up on the first page */
       _parsedPages.Add(Regex.Replace(url, @"\/$", ""));
 
-      string htmlContent = _fetcher.Fetch(url);
+      string htmlContent = _urlFetcher.Fetch(url);
 
       /* If we can't fetch the page, then exit. */
-      if (String.IsNullOrEmpty(htmlContent)) 
+      if (string.IsNullOrEmpty(htmlContent))
       {
         mainContentExtracted = false;
         return null;
@@ -97,7 +104,8 @@ namespace NReadability
 
       /* Attempt to transcode the page */
       XDocument document;
-      string nextPage = null;
+      string nextPage;
+
       document = _transcoder.TranscodeToXml(htmlContent, url, out mainContentExtracted, out nextPage);
 
       if (nextPage != null)
@@ -108,19 +116,33 @@ namespace NReadability
       /* If there are multiple pages, rename the first content div */
       if (_curPageNum > 1)
       {
-        document.GetElementById("readInner").Element("div").SetClass("readability-page-1");
+        document.GetElementById("readInner").Element("div").SetId(_PageIdPrefix + "-1");
       }
 
-      return _agilityDomSerializer.SerializeDocument(document);
+      return _sgmlDomSerializer.SerializeDocument(document, domSerializationParams);
     }
 
+    /// <summary>
+    /// Extracts main article content from a HTML web page using default DomSerializationParams.
+    /// </summary>    
+    /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>    
+    /// <returns>HTML markup containing extracted article content.</returns>
+    public string Transcode(string url, out bool mainContentExtracted)
+    {
+      return Transcode(url, DomSerializationParams.CreateDefault(), out mainContentExtracted);
+    }
+
+    #endregion
+
+    #region Private helper methods
 
     /// <summary>
     /// Recursively appends subsequent pages of a multipage article.
     /// </summary>
     /// <param name="document">Compiled document</param>
     /// <param name="url">Url of current page</param>
-    internal void AppendNextPage(XDocument document, string url)
+    private void AppendNextPage(XDocument document, string url)
     {      
       _curPageNum++;
 
@@ -133,17 +155,23 @@ namespace NReadability
         return;
       }
 
-      string nextContent = _fetcher.Fetch(url);
-      if (String.IsNullOrEmpty(nextContent))
+      string nextContent = _urlFetcher.Fetch(url);
+
+      if (string.IsNullOrEmpty(nextContent))
       {
         return;
       }
+
       bool mainContentExtracted;
       string nextPageLink;
       var nextDocument = _transcoder.TranscodeToXml(nextContent, url, out mainContentExtracted, out nextPageLink);
       var nextInner = nextDocument.GetElementById("readInner");
+      var header = nextInner.Element("h1");
 
-      nextInner.Element("h1").Remove();
+      if (header != null)
+      {
+        header.Remove();
+      }
 
       /*
        * Anti-duplicate mechanism. Essentially, get the first paragraph of our new page.
@@ -151,6 +179,7 @@ namespace NReadability
        * document contains exactly the innerHTML of this first paragraph, it's probably a duplicate.
       */
       var firstP = nextInner.GetElementsByTagName("p").Count() > 0 ? nextInner.GetElementsByTagName("p").First() : null;
+
       if (firstP != null && firstP.GetInnerHtml().Length > 100)
       {
         //string innerHtml = firstP.GetInnerHtml();
@@ -163,7 +192,7 @@ namespace NReadability
         string existingContent = contentDiv.Value;
         string innerHtml = firstP.Value;
 
-        if (!String.IsNullOrEmpty(existingContent) && !String.IsNullOrEmpty(innerHtml) && existingContent.IndexOf(innerHtml) != -1)
+        if (!string.IsNullOrEmpty(existingContent) && !string.IsNullOrEmpty(innerHtml) && existingContent.IndexOf(innerHtml) != -1)
         {
           _parsedPages.Add(url);
           return;
@@ -172,18 +201,21 @@ namespace NReadability
 
       /* Add the content to the existing html */
       var nextDiv = new XElement("div");
+
       nextDiv.SetInnerHtml("<p class='page-separator' title='Page " + _curPageNum + "'>&sect;</p>");
-      nextDiv.SetId("readability-page-" + _curPageNum);
+      nextDiv.SetId(_PageIdPrefix + _curPageNum);
       nextDiv.SetClass("page");      
       nextDiv.Add(nextInner.Nodes());
       contentDiv.Add(nextDiv);
       _parsedPages.Add(url);
 
       /* Only continue if we haven't already seen the next page page */
-      if (!String.IsNullOrEmpty(nextPageLink) && !_parsedPages.Contains(nextPageLink))
+      if (!string.IsNullOrEmpty(nextPageLink) && !_parsedPages.Contains(nextPageLink))
       {
         AppendNextPage(document, nextPageLink);
       }
     }
+
+    #endregion
   }
 }
