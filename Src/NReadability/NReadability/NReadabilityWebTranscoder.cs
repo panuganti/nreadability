@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -33,10 +34,14 @@ namespace NReadability
     private const int _MaxPages = 30;
     private const string _PageIdPrefix = "readability-page-";
 
+    private static readonly Func<int, string> _DefaultPageSeparatorBuilder =
+      pageNumber => string.Format("<p class='page-separator' title='Page {0}'>&sect;</p>", pageNumber);
+
     private readonly NReadabilityTranscoder _transcoder;
     private readonly IUrlFetcher _urlFetcher;
     private readonly SgmlDomSerializer _sgmlDomSerializer;
-    
+
+    private Func<int, string> _pageSeparatorBuilder;
     private List<string> _parsedPages;
     private int _curPageNum;
 
@@ -53,7 +58,8 @@ namespace NReadability
     {
       _transcoder = transcoder;
       _urlFetcher = urlFetcher;
-      _sgmlDomSerializer = new SgmlDomSerializer();      
+      _sgmlDomSerializer = new SgmlDomSerializer();
+      _pageSeparatorBuilder = _DefaultPageSeparatorBuilder;
     }
 
     /// <summary>
@@ -202,7 +208,11 @@ namespace NReadability
       /* Add the content to the existing html */
       var nextDiv = new XElement("div");
 
-      nextDiv.SetInnerHtml("<p class='page-separator' title='Page " + _curPageNum + "'>&sect;</p>");
+      if (_pageSeparatorBuilder != null)
+      {
+        nextDiv.SetInnerHtml(_pageSeparatorBuilder(_curPageNum));
+      }
+
       nextDiv.SetId(_PageIdPrefix + _curPageNum);
       nextDiv.SetClass("page");      
       nextDiv.Add(nextInner.Nodes());
@@ -214,6 +224,19 @@ namespace NReadability
       {
         AppendNextPage(document, nextPageLink);
       }
+    }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// A function which, given a current page number, constructs the HTML which will be used as a page separator.
+    /// </summary>
+    public Func<int, string> PageSeparatorBuilder
+    {
+      get { return _pageSeparatorBuilder; }
+      set { _pageSeparatorBuilder = value; }
     }
 
     #endregion
