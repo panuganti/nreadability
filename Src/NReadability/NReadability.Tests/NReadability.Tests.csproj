@@ -75,6 +75,7 @@
   <ItemGroup>
     <Compile Include="DomExtensionsTests.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
+    <Compile Include="UrlFetcherStub.cs" />
     <Compile Include="NReadabilityTranscoderTests.cs" />
     <Compile Include="NReadabilityWebTranscoderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

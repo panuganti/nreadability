@@ -23,34 +23,26 @@ using System.Net;
 
 namespace NReadability
 {
-  public interface IUrlFetcher
-  {
-    string Fetch(string url);
-  }
-  
   /// <summary>
   /// Fetches web content.
   /// </summary>
   public class UrlFetcher : IUrlFetcher
   {
-    public UrlFetcher() { }
+    #region IUrlFetcher members
 
     public string Fetch(string url)
     {
-      HttpWebRequest fetchRequest = (HttpWebRequest)WebRequest.Create(url);      
+      var fetchRequest = (HttpWebRequest)WebRequest.Create(url);      
+      
       fetchRequest.Method = "GET";
       
-      string fetchResult;
       using (var resp = fetchRequest.GetResponse()) 
+      using (var reader = new StreamReader(resp.GetResponseStream(), true))
       {
-        using (var reader = new StreamReader(resp.GetResponseStream(), true)) 
-        {
-          fetchResult = reader.ReadToEnd();
-        }
-        resp.Close();
+        return reader.ReadToEnd();
       }
-
-      return fetchResult;
     }
+
+    #endregion
   }
 }

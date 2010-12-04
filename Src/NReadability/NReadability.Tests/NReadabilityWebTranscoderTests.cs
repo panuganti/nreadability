@@ -26,38 +26,6 @@ using NUnit.Framework;
 
 namespace NReadability.Tests
 {
-
-  /// <summary>
-  /// Mocks UrlFetcher to provide sample html documents from disk
-  /// The test sample number and an array of urls are passed to the constructor.
-  /// When it recieves a request to fetch a page, it checks the array of urls for the
-  /// requested page and returns the associated html document from disk.
-  /// </summary>
-  class MockUrlFetcher : NReadability.IUrlFetcher
-  {
-    private string[] _urls;
-    int _sampleInputNumber;
-   
-    public MockUrlFetcher(int sampleInputNumber, string[] urls)
-    {
-      _urls = urls;
-      _sampleInputNumber = sampleInputNumber;
-    }
-
-    public string Fetch(string url)
-    {
-      string sampleInputNumberStr = _sampleInputNumber.ToString().PadLeft(2, '0');
-      int pageNo = Array.IndexOf(_urls, url) + 1;
-      if (pageNo == 0)
-      {
-        return null;
-      }
-      string content = File.ReadAllText(string.Format(@"SampleWebInput\SampleInput_{0}_{1}.html", sampleInputNumberStr, pageNo));
-      return content;
-    }
-  }
-
-
   [TestFixture]
   public class NReadabilityWebTranscoderTests
   {
@@ -65,31 +33,32 @@ namespace NReadability.Tests
     private NReadabilityWebTranscoder _nReadabilityWebTranscoder;
 
     /* This provides the list of URLs for the different test imports */
-    private string[][] _Urls = 
-    {
-      new string[] 
+
+    private readonly string[][] _Urls =
       {
-        @"http://www.nytimes.com/2010/11/14/world/asia/14myanmar.html?hp", 
-        @"http://www.nytimes.com/2010/11/14/world/asia/14myanmar.html?pagewanted=2&hp"
-      },
-      new string[]
-      {
-        @"http://www.vanityfair.com/politics/features/2010/12/unbroken-excerpt-201012",
-        @"http://www.vanityfair.com/politics/features/2010/12/unbroken-excerpt-201012?currentPage=2",
-        @"http://www.vanityfair.com/politics/features/2010/12/unbroken-excerpt-201012?currentPage=3"
-      },
-      new string[]
-      {
-        @"http://www.theatlantic.com/magazine/archive/2010/12/dirty-coal-clean-future/8307",
-        @"http://www.theatlantic.com/magazine/archive/2010/12/dirty-coal-clean-future/8307/2",
-        @"http://www.theatlantic.com/magazine/archive/2010/12/dirty-coal-clean-future/8307/3"
-      },
-      new string[]
-      {
-        @"http://www.slate.com/id/2275733",
-        @"http://www.slate.com/id/2275733/pagenum/2"
-      }
-    };
+        new[]
+          {
+            @"http://www.nytimes.com/2010/11/14/world/asia/14myanmar.html?hp",
+            @"http://www.nytimes.com/2010/11/14/world/asia/14myanmar.html?pagewanted=2&hp"
+          },
+        new[]
+          {
+            @"http://www.vanityfair.com/politics/features/2010/12/unbroken-excerpt-201012",
+            @"http://www.vanityfair.com/politics/features/2010/12/unbroken-excerpt-201012?currentPage=2",
+            @"http://www.vanityfair.com/politics/features/2010/12/unbroken-excerpt-201012?currentPage=3"
+          },
+        new[]
+          {
+            @"http://www.theatlantic.com/magazine/archive/2010/12/dirty-coal-clean-future/8307",
+            @"http://www.theatlantic.com/magazine/archive/2010/12/dirty-coal-clean-future/8307/2",
+            @"http://www.theatlantic.com/magazine/archive/2010/12/dirty-coal-clean-future/8307/3"
+          },
+        new[]
+          {
+            @"http://www.slate.com/id/2275733",
+            @"http://www.slate.com/id/2275733/pagenum/2"
+          }
+      };
 
     [SetUp]
     public void SetUp()
@@ -103,7 +72,7 @@ namespace NReadability.Tests
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string[] urls = _Urls[sampleInputNumber - 1];
       string initialUrl = urls[0];
-      IUrlFetcher fetcher = new MockUrlFetcher(sampleInputNumber, urls);
+      IUrlFetcher fetcher = new UrlFetcherStub(sampleInputNumber, urls);
       _nReadabilityWebTranscoder = new NReadabilityWebTranscoder(_nReadabilityTranscoder, fetcher);
       bool mainContentExtracted;
       string transcodedContent = _nReadabilityWebTranscoder.Transcode(initialUrl, out mainContentExtracted);

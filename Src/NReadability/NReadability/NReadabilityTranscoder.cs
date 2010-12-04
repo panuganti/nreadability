@@ -141,8 +141,9 @@ namespace NReadability
     #endregion
 
     #region Helper instance fields
-    private readonly SgmlDomBuilder _agilityDomBuilder;
-    private readonly SgmlDomSerializer _agilityDomSerializer;
+
+    private readonly SgmlDomBuilder _sgmlDomBuilder;
+    private readonly SgmlDomSerializer _sgmlDomSerializer;
     private readonly Dictionary<XElement, float> _elementsScores;
         
     #endregion
@@ -175,8 +176,8 @@ namespace NReadability
       _readingMargin = readingMargin;
       _readingSize = readingSize;
 
-      _agilityDomBuilder = new SgmlDomBuilder();
-      _agilityDomSerializer = new SgmlDomSerializer();
+      _sgmlDomBuilder = new SgmlDomBuilder();
+      _sgmlDomSerializer = new SgmlDomSerializer();
       _elementsScores = new Dictionary<XElement, float>();      
     }
 
@@ -216,7 +217,7 @@ namespace NReadability
     {
       var document = TranscodeToXml(htmlContent, url, out mainContentExtracted, out nextPageUrl);
 
-      return _agilityDomSerializer.SerializeDocument(document, domSerializationParams);
+      return _sgmlDomSerializer.SerializeDocument(document, domSerializationParams);
     }
 
     /// <summary>
@@ -242,6 +243,7 @@ namespace NReadability
     public string Transcode(string htmlContent, string url, out bool mainContentExtracted)
     {
       string nextPageUrl;
+
       return Transcode(htmlContent, url, DomSerializationParams.CreateDefault(), out mainContentExtracted, out nextPageUrl);
     }
 
@@ -254,6 +256,7 @@ namespace NReadability
     public string Transcode(string htmlContent, out bool mainContentExtracted)
     {
       string nextPageUrl;
+
       return Transcode(htmlContent, null, out mainContentExtracted, out nextPageUrl);
     }
 
@@ -276,7 +279,7 @@ namespace NReadability
         throw new ArgumentNullException("htmlContent");
       }
 
-      var document = _agilityDomBuilder.BuildDocument(htmlContent);
+      var document = _sgmlDomBuilder.BuildDocument(htmlContent);
 
       PrepareDocument(document);
 
@@ -314,8 +317,6 @@ namespace NReadability
 
       // TODO: implement another fallback behaviour - rerun one more time with _dontWeightClasses
 
-
-      // TODO: IMM HI
       mainContentExtracted = !articleContentElement.IsEmpty;
 
       return document;
@@ -341,7 +342,7 @@ namespace NReadability
       {
         string linkHref = (string)link.Attribute("href");
 
-        if (String.IsNullOrEmpty(linkHref))
+        if (string.IsNullOrEmpty(linkHref))
           continue;
 
         linkHref = Regex.Replace(linkHref, "#.*$", "");
@@ -480,14 +481,12 @@ namespace NReadability
       {
         string nextHref = Regex.Replace(topPage.LinkHref, @"\/$", "");        
         var nextHrefUri = new Uri(new Uri(articleBaseUrl), nextHref);
-        return nextHrefUri.ToString();
-      } 
-      else
-    {
-        return null;
-      }
-    }
 
+        return nextHrefUri.ToString();
+      }
+
+      return null;
+    }
     
     /// <summary>
     /// Find a cleaned up version of the current URL, to use for comparing links for possible next-pageyness.
@@ -495,19 +494,19 @@ namespace NReadability
     internal string FindBaseUrl(string url)
     {
       Uri urlUri;
+
       if (!Uri.TryCreate(url, UriKind.Absolute, out urlUri))
       {
         return url;
-    }
-        
+      }
+
       string protocol = urlUri.Scheme;
       string hostname = urlUri.Host;        
       string noUrlParams = urlUri.AbsolutePath + "/";
       var urlSlashes = noUrlParams.Split('/').Reverse().ToList();
       var cleanedSegments = new List<string>();
-      string possibleType = "";
-
       int slashLen = urlSlashes.Count();
+
       for (int i = 0;  i < slashLen; i++)
       {
         string segment = urlSlashes[i];
@@ -515,50 +514,65 @@ namespace NReadability
         /* Split off and save anything that looks like a file type. */
         if (segment.IndexOf('.') != -1)
         {
-          possibleType = segment.Split('.')[1];
+          string possibleType = segment.Split('.')[1];
 
           /* If the type isn't alpha-only, it's probably not actually a file extension. */
-          if (!Regex.IsMatch(segment, "[^a-zA-Z]"))
+          if (!Regex.IsMatch(possibleType, "[^a-zA-Z]"))
+          {
             segment = segment.Split('.')[0];
+          }
         }
 
         /*
          * EW-CMS specific segment replacement. Ugly.
          * Example: http://www.ew.com/ew/article/0,,20313460_20369436,00.html
         */
-        if (segment.IndexOf(",00") != -1) 
+        if (segment.IndexOf(",00") != -1)
+        {
           segment = segment.Replace(",00", "");
+        }
             
         /* If our first or second segment has anything looking like a page number, remove it. */
         var pageNumRegex = new Regex("((_|-)?p[a-z]*|(_|-))[0-9]{1,2}$", RegexOptions.IgnoreCase);
-        if (pageNumRegex.IsMatch(segment) && ((i == 1) || (i == 0))) 
+        
+        if (pageNumRegex.IsMatch(segment) && ((i == 1) || (i == 0)))
+        {
           segment = pageNumRegex.Replace(segment, "");
+        }
           
         bool del = false;
 
         /* If this is purely a number, and it's the first or second segment, it's probably a page number. Remove it. */
         if (i < 2 && Regex.IsMatch(segment, @"^[\d]{1,2}$"))
+        {
           del = true;
+        }
             
         /* If this is the first segment and it's just "index," remove it. */
         if (i == 0 && segment.ToLower() == "index")
+        {
           del = true;
+        }
 
         /* If tour first or second segment is smaller than 3 characters, and the first segment was purely alphas, remove it. */
         // TODO: Check these "purely alpha" regexes.  They don't seem right.
         if (i < 2 && segment.Length < 3 && !Regex.IsMatch(urlSlashes[0], "[a-z]", RegexOptions.IgnoreCase))
+        {
           del = true;
+        }
 
         /* If it's not marked for deletion, push it to cleanedSegments */
         if (!del)
+        {
           cleanedSegments.Add(segment);
+        }
       }
 
       /* This is our final, cleaned, base article URL. */
       cleanedSegments.Reverse();
-      return protocol + "://" + hostname + String.Join("/", cleanedSegments.ToArray());
-    }
 
+      return string.Format("{0}://{1}{2}", protocol, hostname, String.Join("/", cleanedSegments.ToArray()));
+    }
 
     internal void PrepareDocument(XDocument document)
     {
@@ -925,7 +939,6 @@ namespace NReadability
       {
         bool append = false;
         string siblingElementName = siblingElement.Name != null ? (siblingElement.Name.LocalName ?? "") : "";
-         
         float contentBonus = 0;
 
         // Give a bonus if sibling nodes and top canidates have the same class name
