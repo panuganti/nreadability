@@ -122,7 +122,7 @@ namespace NReadability
       /* If there are multiple pages, rename the first content div */
       if (_curPageNum > 1)
       {
-        document.GetElementById("readInner").Element("div").SetId(_PageIdPrefix + "-1");
+        document.GetElementById("readInner").Element("div").SetId(_PageIdPrefix + "1");
       }
 
       return _sgmlDomSerializer.SerializeDocument(document, domSerializationParams);
