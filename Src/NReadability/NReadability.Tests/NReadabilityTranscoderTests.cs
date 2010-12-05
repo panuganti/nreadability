@@ -550,16 +550,16 @@ namespace NReadability.Tests
     [Test]
     public void TestImageSourceTransformer()
     {
-      Func<string, AttributeTransformationResult> imgSrcTransformer =
-        url =>
+      Func<AttributeTransformationInput, AttributeTransformationResult> imgSrcTransformer =
+        input =>
         new AttributeTransformationResult
           {
-            TransformedValue = string.Format("http://imageresizer.com/u={0}", url),
+            TransformedValue = string.Format("http://imageresizer.com/u={0}", input.AttributeValue),
             OriginalValueAttributeName = "origsrc",
           };
 
       string originalSrcValue = "http://example.com/some_image.jpg";
-      string expectedSrcValue = imgSrcTransformer.Invoke(originalSrcValue).TransformedValue;
+      string expectedSrcValue = imgSrcTransformer.Invoke(new AttributeTransformationInput { AttributeValue = originalSrcValue, Element = null }).TransformedValue;
 
       string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
       string htmlContent = "<html><body>" + dummyParagraphs + "<p><img src=\"" + originalSrcValue + "\" /></p>" + dummyParagraphs + "</body></html>";
@@ -581,16 +581,16 @@ namespace NReadability.Tests
     [Test]
     public void TestAnchorHrefTransformer()
     {
-      Func<string, AttributeTransformationResult> anchorHrefTransformer =
-        url =>
+      Func<AttributeTransformationInput, AttributeTransformationResult> anchorHrefTransformer =
+        input =>
         new AttributeTransformationResult
           {
-            TransformedValue = string.Format("http://redirector.com/u={0}", url),
+            TransformedValue = string.Format("http://redirector.com/u={0}", input.AttributeValue),
             OriginalValueAttributeName = "orighref",
           };
 
       string originalHrefValue = "http://example.com/some_article.html";
-      string expectedHrefValue = anchorHrefTransformer.Invoke(originalHrefValue).TransformedValue;
+      string expectedHrefValue = anchorHrefTransformer.Invoke(new AttributeTransformationInput { AttributeValue = originalHrefValue, Element = null }).TransformedValue;
 
       string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
       string htmlContent = "<html><body>" + dummyParagraphs + "<p><a href=\"" + originalHrefValue + "\">Some article</a></p>" + dummyParagraphs + "</body></html>";

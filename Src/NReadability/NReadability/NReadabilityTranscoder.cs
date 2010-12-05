@@ -146,8 +146,8 @@ namespace NReadability
     private readonly SgmlDomSerializer _sgmlDomSerializer;
     private readonly Dictionary<XElement, float> _elementsScores;
 
-    private Func<string, AttributeTransformationResult> _imageSourceTranformer;
-    private Func<string, AttributeTransformationResult> _anchorHrefTransformer;
+    private Func<AttributeTransformationInput, AttributeTransformationResult> _imageSourceTranformer;
+    private Func<AttributeTransformationInput, AttributeTransformationResult> _anchorHrefTransformer;
         
     #endregion
 
@@ -1378,7 +1378,7 @@ namespace NReadability
       elementsToRemove.ForEach(elementToRemove => elementToRemove.Remove());
     }
 
-    private static void ResolveElementsUrls(XDocument document, string tagName, string attributeName, string url, Func<string, AttributeTransformationResult> attributeValueTransformer)
+    private static void ResolveElementsUrls(XDocument document, string tagName, string attributeName, string url, Func<AttributeTransformationInput, AttributeTransformationResult> attributeValueTransformer)
     {
       if (document == null)
       {
@@ -1409,7 +1409,7 @@ namespace NReadability
 
           if (attributeValueTransformer != null)
           {
-            attributeTransformationResult = attributeValueTransformer.Invoke(attributeValue);
+            attributeTransformationResult = attributeValueTransformer.Invoke(new AttributeTransformationInput { AttributeValue = attributeValue, Element = element });
           }
           else
           {
@@ -1490,7 +1490,7 @@ namespace NReadability
     ///<summary>
     /// A function to transform the value of 'src' attribute on 'img' elements. Can be null.
     ///</summary>
-    public Func<string, AttributeTransformationResult> ImageSourceTranformer
+    public Func<AttributeTransformationInput, AttributeTransformationResult> ImageSourceTranformer
     {
       get { return _imageSourceTranformer; }
       set { _imageSourceTranformer = value; }
@@ -1499,7 +1499,7 @@ namespace NReadability
     ///<summary>
     /// A function to transform the value of 'href' attribute on 'a' elements. Can be null.
     ///</summary>
-    public Func<string, AttributeTransformationResult> AnchorHrefTranformer
+    public Func<AttributeTransformationInput, AttributeTransformationResult> AnchorHrefTranformer
     {
       get { return _anchorHrefTransformer; }
       set { _anchorHrefTransformer = value; }
