@@ -145,6 +145,9 @@ namespace NReadability
     private readonly SgmlDomBuilder _sgmlDomBuilder;
     private readonly SgmlDomSerializer _sgmlDomSerializer;
     private readonly Dictionary<XElement, float> _elementsScores;
+
+    private Func<string, AttributeTransformationResult> _imageSourceTranformer;
+    private Func<string, AttributeTransformationResult> _anchorHrefTransformer;
         
     #endregion
 
@@ -285,11 +288,12 @@ namespace NReadability
 
       if (!string.IsNullOrEmpty(url))
       {
-        ResolveElementsUrls(document, "img", "src", url);
-        ResolveElementsUrls(document, "a", "href", url);
+        ResolveElementsUrls(document, "img", "src", url, _imageSourceTranformer);
+        ResolveElementsUrls(document, "a", "href", url, _anchorHrefTransformer);
       }
 
       nextPageUrl = null;
+
       if (url != null)
       {
         nextPageUrl = FindNextPageLink(document.GetBody(), url);
@@ -1374,7 +1378,7 @@ namespace NReadability
       elementsToRemove.ForEach(elementToRemove => elementToRemove.Remove());
     }
 
-    private static void ResolveElementsUrls(XDocument document, string tagName, string attributeName, string url)
+    private static void ResolveElementsUrls(XDocument document, string tagName, string attributeName, string url, Func<string, AttributeTransformationResult> attributeValueTransformer)
     {
       if (document == null)
       {
@@ -1401,7 +1405,23 @@ namespace NReadability
 
         if (!string.IsNullOrEmpty(attributeValue))
         {
-          element.SetAttributeValue(attributeName, attributeValue);
+          AttributeTransformationResult attributeTransformationResult;
+
+          if (attributeValueTransformer != null)
+          {
+            attributeTransformationResult = attributeValueTransformer.Invoke(attributeValue);
+          }
+          else
+          {
+            attributeTransformationResult = new AttributeTransformationResult { TransformedValue = attributeValue };
+          }
+
+          element.SetAttributeValue(attributeName, attributeTransformationResult.TransformedValue);
+
+          if (!string.IsNullOrEmpty(attributeTransformationResult.OriginalValueAttributeName))
+          {
+            element.SetAttributeValue(attributeTransformationResult.OriginalValueAttributeName, attributeValue);
+          }
         }
       }
     }
@@ -1461,6 +1481,28 @@ namespace NReadability
     private void SetElementScore(XElement element, float score)
     {
       _elementsScores[element] = score;
+    }
+
+    #endregion
+
+    #region Properties
+
+    ///<summary>
+    /// A function to transform the value of 'src' attribute on 'img' elements. Can be null.
+    ///</summary>
+    public Func<string, AttributeTransformationResult> ImageSourceTranformer
+    {
+      get { return _imageSourceTranformer; }
+      set { _imageSourceTranformer = value; }
+    }
+
+    ///<summary>
+    /// A function to transform the value of 'href' attribute on 'a' elements. Can be null.
+    ///</summary>
+    public Func<string, AttributeTransformationResult> AnchorHrefTranformer
+    {
+      get { return _anchorHrefTransformer; }
+      set { _anchorHrefTransformer = value; }
     }
 
     #endregion

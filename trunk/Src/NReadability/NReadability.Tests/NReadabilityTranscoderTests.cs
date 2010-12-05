@@ -510,7 +510,6 @@ namespace NReadability.Tests
         Assert.IsTrue(mainContentExtracted);
         Assert.IsTrue(transcodedContent.Contains("href=\"http://wikipedia.org/wiki/baseArticle?hello\""));
     }
-   
 
     [Test]
     public void TestEmptyArticle()
@@ -546,6 +545,68 @@ namespace NReadability.Tests
 
       Assert.IsTrue(mainContentExtracted);
       Assert.IsFalse(transcodedContent.Contains(metaViewportElementStr));
+    }
+
+    [Test]
+    public void TestImageSourceTransformer()
+    {
+      Func<string, AttributeTransformationResult> imgSrcTransformer =
+        url =>
+        new AttributeTransformationResult
+          {
+            TransformedValue = string.Format("http://imageresizer.com/u={0}", url),
+            OriginalValueAttributeName = "origsrc",
+          };
+
+      string originalSrcValue = "http://example.com/some_image.jpg";
+      string expectedSrcValue = imgSrcTransformer.Invoke(originalSrcValue).TransformedValue;
+
+      string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
+      string htmlContent = "<html><body>" + dummyParagraphs + "<p><img src=\"" + originalSrcValue + "\" /></p>" + dummyParagraphs + "</body></html>";
+
+      var nReadabilityTranscoder =
+        new NReadabilityTranscoder
+          {
+            ImageSourceTranformer = imgSrcTransformer,
+          };
+
+      bool mainContentExtracted;
+      string transcodedContent = nReadabilityTranscoder.Transcode(htmlContent, "http://immortal.pl/", out mainContentExtracted);
+
+      Assert.IsTrue(mainContentExtracted);
+      Assert.IsTrue(transcodedContent.Contains("src=\"" + expectedSrcValue + "\""));
+      Assert.IsTrue(transcodedContent.Contains("origsrc=\"" + originalSrcValue + "\""));
+    }
+
+    [Test]
+    public void TestAnchorHrefTransformer()
+    {
+      Func<string, AttributeTransformationResult> anchorHrefTransformer =
+        url =>
+        new AttributeTransformationResult
+          {
+            TransformedValue = string.Format("http://redirector.com/u={0}", url),
+            OriginalValueAttributeName = "orighref",
+          };
+
+      string originalHrefValue = "http://example.com/some_article.html";
+      string expectedHrefValue = anchorHrefTransformer.Invoke(originalHrefValue).TransformedValue;
+
+      string dummyParagraphs = "<p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p><p>Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet. Lorem ipsum dolor et amet.</p>";
+      string htmlContent = "<html><body>" + dummyParagraphs + "<p><a href=\"" + originalHrefValue + "\">Some article</a></p>" + dummyParagraphs + "</body></html>";
+
+      var nReadabilityTranscoder =
+        new NReadabilityTranscoder
+          {
+            AnchorHrefTranformer = anchorHrefTransformer,
+          };
+
+      bool mainContentExtracted;
+      string transcodedContent = nReadabilityTranscoder.Transcode(htmlContent, "http://immortal.pl/", out mainContentExtracted);
+
+      Assert.IsTrue(mainContentExtracted);
+      Assert.IsTrue(transcodedContent.Contains("href=\"" + expectedHrefValue + "\""));
+      Assert.IsTrue(transcodedContent.Contains("orighref=\"" + originalHrefValue + "\""));
     }
 
     #endregion
