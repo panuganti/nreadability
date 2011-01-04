@@ -365,7 +365,7 @@ namespace NReadability.Tests
     [Test]
     [Sequential]
     // TODO: if time, add test case 7 (the sample is already in the repo but needs fixing)
-    public void TestSampleInputs([Values(1, 2, 3, 4, 5, 6, 8)]int sampleInputNumber)
+    public void TestSampleInputs([Values(1, 2, 3, 4, 5, 6, 8, 9)]int sampleInputNumber)
     {
       string sampleInputNumberStr = sampleInputNumber.ToString().PadLeft(2, '0');
       string content = File.ReadAllText(string.Format(@"SampleInput\SampleInput_{0}.html", sampleInputNumberStr));
@@ -432,6 +432,12 @@ namespace NReadability.Tests
           Assert.IsTrue(transcodedContent.Contains("freed from house arrest on Saturday, setting her on the path"));
           Assert.IsTrue(transcodedContent.Contains("confrontation with the generals who had kept her out of the public eye"));
           Assert.IsTrue(transcodedContent.Contains("Western capitals was one of celebration"));
+          break;
+
+        case 9:  // http://www.udidahan.com/2010/08/31/race-conditions-dont-exist/ - rich sidebar should not be identified as main content
+          Assert.IsTrue(transcodedContent.Contains("Not in the business world anyway."));
+          Assert.IsTrue(transcodedContent.Contains("we could look at modeling the acceptance"));
+          Assert.IsTrue(transcodedContent.Contains("Keep an eye out."));
           break;
 
         default:

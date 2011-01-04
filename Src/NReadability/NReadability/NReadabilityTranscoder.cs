@@ -108,8 +108,8 @@ namespace NReadability
 
     private static readonly Regex _UnlikelyCandidatesRegex = new Regex("combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex _OkMaybeItsACandidateRegex = new Regex("and|article|body|column|main|shadow", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _PositiveWeightRegex = new Regex("article|body|content|entry|hentry|main|page|pagination|post|text|blog|story", RegexOptions.Compiled | RegexOptions.IgnoreCase);    
-    private static readonly Regex _NegativeWeightRegex = new Regex("combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _PositiveWeightRegex = new Regex("article|body|content|entry|hentry|main|page|pagination|post|text|blog|story", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _NegativeWeightRegex = new Regex("combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|side|sponsor|shopping|tags|tool|widget", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex _Extraneous = new Regex("print|archive|comment|discuss|e[-]?mail|share|reply|all|login|sign|single|also", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex _DivToPElementsRegex = new Regex("<(a|blockquote|dl|div|img|ol|p|pre|table|ul)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex _EndOfSentenceRegex = new Regex("\\.( |$)", RegexOptions.Compiled | RegexOptions.Multiline);
@@ -124,8 +124,8 @@ namespace NReadability
     private static readonly Regex _ArticleTitleDashRegex3 = new Regex("[^\\|\\-]*[\\|\\-](.*)", RegexOptions.Compiled);
     private static readonly Regex _ArticleTitleColonRegex1 = new Regex(".*:(.*)", RegexOptions.Compiled);
     private static readonly Regex _ArticleTitleColonRegex2 = new Regex("[^:]*[:](.*)", RegexOptions.Compiled);    
-    private static readonly Regex _NextLink = new Regex(@"(next|weiter|continue|>([^\|]|$)|�([^\|]|$))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _PrevLink = new Regex("(prev|earl|old|new|<|�)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _NextLink = new Regex(@"(next|weiter|continue|dalej|następna|nastepna>([^\|]|$)|�([^\|]|$))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _PrevLink = new Regex("(prev|earl|old|new|wstecz|poprzednia|<|�)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     #endregion
 
