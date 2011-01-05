@@ -26,7 +26,7 @@ using System.Xml.Linq;
 
 namespace NReadability
 {
-  internal static class DomExtensions
+  public static class DomExtensions
   {
     #region XDocument extensions
 
