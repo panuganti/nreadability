@@ -129,6 +129,12 @@ namespace NReadability
 
     #endregion
 
+    #region Other regular expressions
+
+    private static readonly Regex _MailtoHrefRegex = new Regex("^\\s*mailto\\s*:", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    #endregion
+
     #region Algorithm parameters
 
     private bool _dontStripUnlikelys;
@@ -347,6 +353,9 @@ namespace NReadability
         string linkHref = (string)link.Attribute("href");
 
         if (string.IsNullOrEmpty(linkHref))
+          continue;
+
+        if (_MailtoHrefRegex.IsMatch(linkHref))
           continue;
 
         linkHref = Regex.Replace(linkHref, "#.*$", "");
@@ -1428,6 +1437,16 @@ namespace NReadability
 
     private static string ResolveElementUrl(string url, string articleUrl)
     {
+      if (url == null)
+      {
+        throw new ArgumentNullException();
+      }
+
+      if (_MailtoHrefRegex.IsMatch(url))
+      {
+        return url;
+      }
+
       Uri baseUri;      
 
       if (!Uri.TryCreate(articleUrl, UriKind.Absolute, out baseUri))
