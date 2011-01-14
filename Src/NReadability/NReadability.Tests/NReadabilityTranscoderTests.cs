@@ -615,6 +615,17 @@ namespace NReadability.Tests
       Assert.IsTrue(transcodedContent.Contains("orighref=\"" + originalHrefValue + "\""));
     }
 
+    [Test]
+    public void Output_contains_meta_generator_element()
+    {
+      bool mainContentExtracted;
+
+      string transcodedContent =
+        _nReadabilityTranscoder.Transcode("test", out mainContentExtracted);
+
+      Assert.IsTrue(transcodedContent.Contains("meta name=\"Generator\""));
+    }
+
     #endregion
 
     #region Private helper methods
