@@ -1,4 +1,6 @@
-﻿namespace NReadability
+﻿using System;
+
+namespace NReadability
 {
   public class DomSerializationParams
   {
@@ -27,7 +29,7 @@
     public bool DontIncludeMetaContentTypeElement { get; set; }
 
     /// <summary>
-    /// Determines whether mobile-specific elements (such as eg. meta HandheldFriendly) in the output.
+    /// Determines whether mobile-specific elements (such as eg. meta HandheldFriendly) will be added/replaced in the output.
     /// </summary>
     public bool DontIncludeMobileSpecificElements { get; set; }
 
@@ -35,6 +37,11 @@
     /// Determines whether a meta tag with a content-type specification will be added/replaced in the output.
     /// </summary>
     public bool DontIncludeDocType { get; set; }
+
+    /// <summary>
+    /// Determines whether a meta tag with a generator specification will be added/replaced in the output.
+    /// </summary>
+    public bool DontIncludeMetaGeneratorElement { get; set; }
 
     #endregion
   }

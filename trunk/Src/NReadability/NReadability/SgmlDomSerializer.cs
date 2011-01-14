@@ -39,7 +39,9 @@ namespace NReadability
     /// <returns>Serialized representation of the DOM.</returns>
     public string SerializeDocument(XDocument document, DomSerializationParams domSerializationParams)
     {
-      if (!domSerializationParams.DontIncludeMetaContentTypeElement || !domSerializationParams.DontIncludeMobileSpecificElements)
+      if (!domSerializationParams.DontIncludeMetaContentTypeElement
+       || !domSerializationParams.DontIncludeMobileSpecificElements
+       || !domSerializationParams.DontIncludeMetaGeneratorElement)
       {
         var documentRoot = document.Root;
 
@@ -62,59 +64,7 @@ namespace NReadability
           documentRoot.AddFirst(headElement);
         }
 
-        if (!domSerializationParams.DontIncludeMetaContentTypeElement)
-        {
-          // add <meta name="http-equiv" ... /> element
-          XElement metaContentTypeElement =
-            (from metaElement in headElement.GetChildrenByTagName("meta")
-             where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""), StringComparison.OrdinalIgnoreCase)
-             select metaElement).FirstOrDefault();
-
-          if (metaContentTypeElement != null)
-          {
-            metaContentTypeElement.Remove();
-          }
-
-          metaContentTypeElement =
-            new XElement(
-              XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
-              new XAttribute("http-equiv", "Content-Type"),
-              new XAttribute("content", "text/html; charset=utf-8"));
-
-          headElement.AddFirst(metaContentTypeElement);
-        }
-
-        if (!domSerializationParams.DontIncludeMobileSpecificElements)
-        {
-          // add <meta name="HandheldFriendly" ... /> element
-          XElement metaHandheldFriendlyElement =
-            (from metaElement in headElement.GetChildrenByTagName("meta")
-             where "HandheldFriendly".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
-             select metaElement).FirstOrDefault();
-
-          if (metaHandheldFriendlyElement != null)
-          {
-            metaHandheldFriendlyElement.Remove();
-          }
-
-          metaHandheldFriendlyElement = new XElement(
-            XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
-            new XAttribute("name", "HandheldFriendly"),
-            new XAttribute("content", "true"));
-
-          headElement.AddFirst(metaHandheldFriendlyElement);
-
-          // remove meta viewport element if present
-          XElement metaViewportElement =
-            (from metaElement in headElement.GetChildrenByTagName("meta")
-             where "viewport".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
-             select metaElement).FirstOrDefault();
-
-          if (metaViewportElement != null)
-          {
-            metaViewportElement.Remove();
-          }
-        }
+        ProcessMetaElements(headElement, domSerializationParams);
       }
 
       string result = document.ToString(domSerializationParams.PrettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
@@ -135,6 +85,91 @@ namespace NReadability
     public string SerializeDocument(XDocument document)
     {
       return SerializeDocument(document, DomSerializationParams.CreateDefault());
+    }
+
+    #endregion
+
+    #region Private helper methods
+
+    private void ProcessMetaElements(XElement headElement, DomSerializationParams domSerializationParams)
+    {
+      if (!domSerializationParams.DontIncludeMetaContentTypeElement)
+      {
+        // add <meta name="http-equiv" ... /> element
+        XElement metaContentTypeElement =
+          (from metaElement in headElement.GetChildrenByTagName("meta")
+           where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""), StringComparison.OrdinalIgnoreCase)
+           select metaElement).FirstOrDefault();
+
+        // remove meta 'http-equiv' element if present
+        if (metaContentTypeElement != null)
+        {
+          metaContentTypeElement.Remove();
+        }
+
+        metaContentTypeElement =
+          new XElement(
+            XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
+            new XAttribute("http-equiv", "Content-Type"),
+            new XAttribute("content", "text/html; charset=utf-8"));
+
+        headElement.AddFirst(metaContentTypeElement);
+      }
+
+      if (!domSerializationParams.DontIncludeMobileSpecificElements)
+      {
+        // add <meta name="HandheldFriendly" ... /> element
+        XElement metaHandheldFriendlyElement =
+          (from metaElement in headElement.GetChildrenByTagName("meta")
+           where "HandheldFriendly".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
+           select metaElement).FirstOrDefault();
+
+        // remove meta 'HandheldFriendly' element if present
+        if (metaHandheldFriendlyElement != null)
+        {
+          metaHandheldFriendlyElement.Remove();
+        }
+
+        metaHandheldFriendlyElement = new XElement(
+          XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
+          new XAttribute("name", "HandheldFriendly"),
+          new XAttribute("content", "true"));
+
+        headElement.AddFirst(metaHandheldFriendlyElement);
+
+        // remove meta 'viewport' element if present
+        XElement metaViewportElement =
+          (from metaElement in headElement.GetChildrenByTagName("meta")
+           where "viewport".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
+           select metaElement).FirstOrDefault();
+
+        if (metaViewportElement != null)
+        {
+          metaViewportElement.Remove();
+        }
+      }
+
+      if (!domSerializationParams.DontIncludeMetaGeneratorElement)
+      {
+        // add <meta name="Generator" ... /> element
+        XElement metaGeneratorElement =
+          (from metaElement in headElement.GetChildrenByTagName("meta")
+           where "Generator".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
+           select metaElement).FirstOrDefault();
+
+        // remove meta 'generator' element if present
+        if (metaGeneratorElement != null)
+        {
+          metaGeneratorElement.Remove();
+        }
+
+        metaGeneratorElement = new XElement(
+          XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
+          new XAttribute("name", "Generator"),
+          new XAttribute("content", Consts.NReadabilityFullName));
+
+        headElement.AddFirst(metaGeneratorElement);
+      }
     }
 
     #endregion
