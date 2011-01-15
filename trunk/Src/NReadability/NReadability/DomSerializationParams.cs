@@ -26,22 +26,22 @@ namespace NReadability
     /// <summary>
     /// Determines whether DOCTYPE will be included at the beginning of the output.
     /// </summary>
-    public bool DontIncludeMetaContentTypeElement { get; set; }
+    public bool DontIncludeContentTypeMetaElement { get; set; }
 
     /// <summary>
     /// Determines whether mobile-specific elements (such as eg. meta HandheldFriendly) will be added/replaced in the output.
     /// </summary>
-    public bool DontIncludeMobileSpecificElements { get; set; }
+    public bool DontIncludeMobileSpecificMetaElements { get; set; }
 
     /// <summary>
     /// Determines whether a meta tag with a content-type specification will be added/replaced in the output.
     /// </summary>
-    public bool DontIncludeDocType { get; set; }
+    public bool DontIncludeDocTypeMetaElement { get; set; }
 
     /// <summary>
     /// Determines whether a meta tag with a generator specification will be added/replaced in the output.
     /// </summary>
-    public bool DontIncludeMetaGeneratorElement { get; set; }
+    public bool DontIncludeGeneratorMetaElement { get; set; }
 
     #endregion
   }

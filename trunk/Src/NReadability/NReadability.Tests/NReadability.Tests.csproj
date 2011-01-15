@@ -74,6 +74,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SgmlDomSerializerTests.cs" />
     <Compile Include="DomExtensionsTests.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
     <Compile Include="UrlFetcherStub.cs" />
