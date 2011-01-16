@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -14,7 +14,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyProduct("")]
 [assembly: AssemblyCopyright("Copyright (c) 2002, Microsoft Corporation; Copyright © 2007-2008, MindTouch")]
 [assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
+[assembly: AssemblyCulture("")]		
 [assembly: CLSCompliant(true)]
 
 //
