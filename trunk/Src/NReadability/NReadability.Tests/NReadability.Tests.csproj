@@ -67,13 +67,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\Lib\NUnit\nunit.framework.dll</HintPath>
     </Reference>
-    <Reference Include="SgmlReaderDll, Version=1.8.6.28404, Culture=neutral, PublicKeyToken=46b2db9ca481831b">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Lib\SgmlReader\SgmlReaderDll.dll</HintPath>
-    </Reference>
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MyAssert.cs" />
     <Compile Include="SgmlDomSerializerTests.cs" />
     <Compile Include="DomExtensionsTests.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
@@ -87,6 +84,10 @@
     <ProjectReference Include="..\NReadability\NReadability.csproj">
       <Project>{0CCC740D-2907-437B-B5FF-F473DFA02382}</Project>
       <Name>NReadability</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Sgml\Sgml.csproj">
+      <Project>{E02304E2-BC88-4692-B185-0DFE35680DFC}</Project>
+      <Name>Sgml</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

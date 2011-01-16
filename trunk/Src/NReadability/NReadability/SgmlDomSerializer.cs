@@ -126,6 +126,17 @@ namespace NReadability
 
     private static void ProcessMobileSpecificMetaElements(XElement headElement, DomSerializationParams domSerializationParams)
     {
+      XElement metaViewportElement =
+        (from metaElement in headElement.GetChildrenByTagName("meta")
+         where "viewport".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
+         select metaElement).FirstOrDefault();
+
+      // remove meta 'viewport' element if present
+      if (metaViewportElement != null)
+      {
+        metaViewportElement.Remove();
+      }
+
       XElement metaHandheldFriendlyElement =
         (from metaElement in headElement.GetChildrenByTagName("meta")
          where "HandheldFriendly".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
@@ -146,17 +157,6 @@ namespace NReadability
           new XAttribute("content", "true"));
 
         headElement.AddFirst(metaHandheldFriendlyElement);
-
-        // remove meta 'viewport' element if present
-        XElement metaViewportElement =
-          (from metaElement in headElement.GetChildrenByTagName("meta")
-           where "viewport".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
-           select metaElement).FirstOrDefault();
-
-        if (metaViewportElement != null)
-        {
-          metaViewportElement.Remove();
-        }
       }
     }
 
