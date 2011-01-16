@@ -1,21 +1,20 @@
-﻿using System;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 namespace NReadability.Tests
 {
   [TestFixture]
   public class SgmlDomSerializerTests
   {
-    private SgmlDomBuilder _sgmlDomBuilder;
     private SgmlDomSerializer _sgmlDomSerializer;
+    private SgmlDomBuilder _sgmlDomBuilder;
 
     #region SetUp and TearDown
 
     [SetUp]
     public void SetUp()
     {
-      _sgmlDomBuilder = new SgmlDomBuilder();
       _sgmlDomSerializer = new SgmlDomSerializer();
+      _sgmlDomBuilder = new SgmlDomBuilder();
     }
 
     #endregion
@@ -56,6 +55,28 @@ namespace NReadability.Tests
         new DomSerializationParams
         {
           DontIncludeMobileSpecificMetaElements = false,
+        };
+
+      // act
+      string serializedHtmlContent =
+        _sgmlDomSerializer.SerializeDocument(xDocument, domSerializationParams);
+
+      // assert
+      AssertViewportMetaElementPresence(serializedHtmlContent, false);
+    }
+
+    [Test]
+    public void Serializer_removes_viewport_meta_element_if_DontIncludeMobileSpecificElements_is_true()
+    {
+      // arrange
+      const string htmlContent = "<html><head><meta name=\"viewport\" content=\"width=1100\" /></head><body></body></html>";
+
+      var xDocument = _sgmlDomBuilder.BuildDocument(htmlContent);
+
+      var domSerializationParams =
+        new DomSerializationParams
+        {
+          DontIncludeMobileSpecificMetaElements = true,
         };
 
       // act
@@ -132,6 +153,36 @@ namespace NReadability.Tests
 
       // assert
       AssertContentTypeMetaElementPresence(serializedHtmlContent, true);
+    }
+
+    [Test]
+    public void Serializer_removes_existing_generator_meta_element()
+    {
+      // arrange
+      const string htmlContent = "<html><head><meta name=\"generator\" value=\"WordPress\"</head><body></body></html>";
+
+      var xDocument = _sgmlDomBuilder.BuildDocument(htmlContent);
+
+      // act
+      string serializedHtmlContent = _sgmlDomSerializer.SerializeDocument(xDocument);
+
+      // assert
+      MyAssert.AssertSubstringCount(1, serializedHtmlContent, "<meta name=\"Generator\"");
+    }
+
+    [Test]
+    public void Serializer_removes_existing_content_type_meta_element()
+    {
+      // arrange
+      const string htmlContent = "<html><head><meta http-equiv=\"Content-Type\" value=\"UTF-8\"</head><body></body></html>";
+
+      var xDocument = _sgmlDomBuilder.BuildDocument(htmlContent);
+
+      // act
+      string serializedHtmlContent = _sgmlDomSerializer.SerializeDocument(xDocument);
+
+      // assert
+      MyAssert.AssertSubstringCount(1, serializedHtmlContent, "<meta http-equiv=\"Content-Type\"");
     }
 
     #endregion
