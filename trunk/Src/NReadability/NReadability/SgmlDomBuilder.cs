@@ -19,6 +19,7 @@
  */
 
 using System;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using Sgml;
@@ -71,7 +72,7 @@ namespace NReadability
         sgmlReader.DocType = "HTML";
         sgmlReader.WhitespaceHandling = WhitespaceHandling.None;
 
-        using (var sr = new StringReader(htmlContent))
+        using (var sr = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(htmlContent))))
         {
           sgmlReader.InputStream = sr;
 
